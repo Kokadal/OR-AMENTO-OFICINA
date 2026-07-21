@@ -1,4 +1,4 @@
-// Autenticação e sincronização com servidor
+// Autenticação e sincronização com Firebase
 
 let currentUser = null;
 const AUTH_KEY = "auth_user_data";
@@ -16,7 +16,16 @@ function initAuth() {
     try {
       currentUser = JSON.parse(savedAuth);
       showApp();
-      syncDataFromServer(); // Sincronizar ao entrar
+      syncDataFromFirebase(); // Sincronizar ao entrar
+      listenForRemoteChanges(currentUser.id, (remoteData) => {
+        // Atualizar dados locais quando houver mudanças remotas
+        if (remoteData.orcamentos) localStorage.setItem("oficina_orcamentos_v3", remoteData.orcamentos);
+        if (remoteData.placas) localStorage.setItem("oficina_placas_salvas_v1", remoteData.placas);
+        if (remoteData.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", remoteData.rascunho);
+        if (remoteData.dadosOficina) localStorage.setItem("oficina_dados_v1", remoteData.dadosOficina);
+        // Recarregar a interface
+        if (window.renderHome) renderHome();
+      });
       return;
     } catch (error) {
       console.error("Erro ao restaurar autenticação:", error);
@@ -35,37 +44,30 @@ function initAuth() {
     loginError.style.display = "none";
     loginError.textContent = "";
 
-    try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+    // Validação simples (no futuro, usar Firebase Auth)
+    if (username === "roberto" && password === "senha321@@") {
+      // Criar ID de usuário determinístico
+      const userId = btoa("roberto"); // Converter para base64 para ID consistente
+      
+      currentUser = { id: userId, username: "roberto" };
+      localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+
+      // Carregar dados do Firebase
+      syncDataFromFirebase();
+      
+      // Escutar mudanças remotas
+      listenForRemoteChanges(userId, (remoteData) => {
+        if (remoteData.orcamentos) localStorage.setItem("oficina_orcamentos_v3", remoteData.orcamentos);
+        if (remoteData.placas) localStorage.setItem("oficina_placas_salvas_v1", remoteData.placas);
+        if (remoteData.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", remoteData.rascunho);
+        if (remoteData.dadosOficina) localStorage.setItem("oficina_dados_v1", remoteData.dadosOficina);
+        if (window.renderHome) renderHome();
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        currentUser = result.user;
-        localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
-
-        // Restaurar dados do servidor
-        if (result.data) {
-          if (result.data.orcamentos) localStorage.setItem("oficina_orcamentos_v3", result.data.orcamentos);
-          if (result.data.placas) localStorage.setItem("oficina_placas_salvas_v1", result.data.placas);
-          if (result.data.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", result.data.rascunho);
-          if (result.data.dadosOficina) localStorage.setItem("oficina_dados_v1", result.data.dadosOficina);
-        }
-
-        showApp();
-        syncDataFromServer();
-      } else {
-        loginError.style.display = "block";
-        loginError.textContent = result.message || "Erro na autenticação";
-      }
-    } catch (error) {
-      console.error("Erro ao fazer login:", error);
+      showApp();
+    } else {
       loginError.style.display = "block";
-      loginError.textContent = "Erro ao conectar com o servidor";
+      loginError.textContent = "Usuário ou senha inválido";
     }
   });
 }
@@ -75,8 +77,8 @@ function showApp() {
   document.getElementById("appView").style.display = "block";
 }
 
-function syncDataToServer() {
-  if (!currentUser) return;
+function syncDataToFirebase() {
+  if (!currentUser || !db) return;
 
   const data = {
     orcamentos: localStorage.getItem("oficina_orcamentos_v3"),
@@ -85,34 +87,26 @@ function syncDataToServer() {
     dadosOficina: localStorage.getItem("oficina_dados_v1")
   };
 
-  fetch("/api/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId: currentUser.id, data })
-  }).catch(error => console.error("Erro ao sincronizar:", error));
+  saveUserDataToFirebase(currentUser.id, data).catch(error => {
+    console.error("Erro ao sincronizar:", error);
+  });
 }
 
-function syncDataFromServer() {
-  if (!currentUser) return;
+function syncDataFromFirebase() {
+  if (!currentUser || !db) return;
 
-  fetch("/api/data", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId: currentUser.id })
-  })
-    .then(response => response.json())
-    .then(result => {
-      if (result.success && result.data) {
-        if (result.data.orcamentos) localStorage.setItem("oficina_orcamentos_v3", result.data.orcamentos);
-        if (result.data.placas) localStorage.setItem("oficina_placas_salvas_v1", result.data.placas);
-        if (result.data.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", result.data.rascunho);
-        if (result.data.dadosOficina) localStorage.setItem("oficina_dados_v1", result.data.dadosOficina);
-      }
-    })
-    .catch(error => console.error("Erro ao sincronizar dados:", error));
+  loadUserDataFromFirebase(currentUser.id).then((data) => {
+    if (data) {
+      if (data.orcamentos) localStorage.setItem("oficina_orcamentos_v3", data.orcamentos);
+      if (data.placas) localStorage.setItem("oficina_placas_salvas_v1", data.placas);
+      if (data.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", data.rascunho);
+      if (data.dadosOficina) localStorage.setItem("oficina_dados_v1", data.dadosOficina);
+    }
+  });
 }
 
 function logout() {
+  stopListening(currentUser?.id);
   currentUser = null;
   localStorage.removeItem(AUTH_KEY);
   localStorage.removeItem("oficina_orcamentos_v3");
@@ -122,28 +116,29 @@ function logout() {
   location.reload();
 }
 
-// Interceptar salvamentos para sincronizar com servidor
+// Interceptar salvamentos para sincronizar com Firebase
 const originalSetItem = Storage.prototype.setItem;
 Storage.prototype.setItem = function(key, value) {
   originalSetItem.call(this, key, value);
 
   const syncKeys = ["oficina_orcamentos_v3", "oficina_placas_salvas_v1", "oficina_rascunho_atual_v1", "oficina_dados_v1"];
   if (syncKeys.includes(key) && currentUser) {
-    syncDataToServer();
+    // Pequeno delay para evitar sincronizações muito frequentes
+    setTimeout(() => syncDataToFirebase(), 500);
   }
 };
 
 // Auto-sincronizar periodicamente
 setInterval(() => {
   if (currentUser) {
-    syncDataFromServer();
+    syncDataToFirebase();
   }
 }, SYNC_INTERVAL);
 
 // Sincronizar ao sair da página
 window.addEventListener("beforeunload", () => {
   if (currentUser) {
-    syncDataToServer();
+    syncDataToFirebase();
   }
 });
 
