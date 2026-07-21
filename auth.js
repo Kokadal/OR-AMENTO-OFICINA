@@ -1,6 +1,6 @@
 // Autenticação e sincronização com Firebase
 
-let currentUser = null;
+window.currentUser = null;
 const AUTH_KEY = "auth_user_data";
 const SYNC_INTERVAL = 5 * 60 * 1000; // Sincronizar a cada 5 minutos
 
@@ -14,10 +14,12 @@ function initAuth() {
   const savedAuth = localStorage.getItem(AUTH_KEY);
   if (savedAuth) {
     try {
-      currentUser = JSON.parse(savedAuth);
+      window.currentUser = JSON.parse(savedAuth);
+      console.log("✅ Usuário restaurado:", window.currentUser);
       showApp();
       syncDataFromFirebase(); // Sincronizar ao entrar
-      listenForRemoteChanges(currentUser.id, (remoteData) => {
+      listenForRemoteChanges(window.currentUser.id, (remoteData) => {
+        console.log("🔄 Atualizando dados locais com mudanças remotas...");
         // Atualizar dados locais quando houver mudanças remotas
         if (remoteData.orcamentos) localStorage.setItem("oficina_orcamentos_v3", remoteData.orcamentos);
         if (remoteData.placas) localStorage.setItem("oficina_placas_salvas_v1", remoteData.placas);
@@ -28,7 +30,7 @@ function initAuth() {
       });
       return;
     } catch (error) {
-      console.error("Erro ao restaurar autenticação:", error);
+      console.error("❌ Erro ao restaurar autenticação:", error);
     }
   }
 
@@ -44,27 +46,29 @@ function initAuth() {
     loginError.style.display = "none";
     loginError.textContent = "";
 
-    // Validação simples (no futuro, usar Firebase Auth)
+    // Validação simples
     if (username === "roberto" && password === "senha321@@") {
+      console.log("✅ Login bem-sucedido para:", username);
       // Criar ID de usuário determinístico
       const userId = btoa("roberto"); // Converter para base64 para ID consistente
       
-      currentUser = { id: userId, username: "roberto" };
-      localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+      window.currentUser = { id: userId, username: "roberto" };
+      localStorage.setItem(AUTH_KEY, JSON.stringify(window.currentUser));
 
       // Carregar dados do Firebase
-      syncDataFromFirebase();
-      
-      // Escutar mudanças remotas
-      listenForRemoteChanges(userId, (remoteData) => {
-        if (remoteData.orcamentos) localStorage.setItem("oficina_orcamentos_v3", remoteData.orcamentos);
-        if (remoteData.placas) localStorage.setItem("oficina_placas_salvas_v1", remoteData.placas);
-        if (remoteData.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", remoteData.rascunho);
-        if (remoteData.dadosOficina) localStorage.setItem("oficina_dados_v1", remoteData.dadosOficina);
-        if (window.renderHome) renderHome();
-      });
+      syncDataFromFirebase().then(() => {
+        // Escutar mudanças remotas
+        listenForRemoteChanges(userId, (remoteData) => {
+          console.log("🔄 Atualizando dados com sincronização remota...");
+          if (remoteData.orcamentos) localStorage.setItem("oficina_orcamentos_v3", remoteData.orcamentos);
+          if (remoteData.placas) localStorage.setItem("oficina_placas_salvas_v1", remoteData.placas);
+          if (remoteData.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", remoteData.rascunho);
+          if (remoteData.dadosOficina) localStorage.setItem("oficina_dados_v1", remoteData.dadosOficina);
+          if (window.renderHome) renderHome();
+        });
 
-      showApp();
+        showApp();
+      });
     } else {
       loginError.style.display = "block";
       loginError.textContent = "Usuário ou senha inválido";
@@ -78,7 +82,10 @@ function showApp() {
 }
 
 function syncDataToFirebase() {
-  if (!currentUser || !db) return;
+  if (!window.currentUser || !db) {
+    console.warn("⚠️ Não posso sincronizar: usuário não logado ou Firebase não pronto");
+    return;
+  }
 
   const data = {
     orcamentos: localStorage.getItem("oficina_orcamentos_v3"),
@@ -87,16 +94,22 @@ function syncDataToFirebase() {
     dadosOficina: localStorage.getItem("oficina_dados_v1")
   };
 
-  saveUserDataToFirebase(currentUser.id, data).catch(error => {
-    console.error("Erro ao sincronizar:", error);
+  console.log("📤 Sincronizando dados do usuário...");
+  saveUserDataToFirebase(window.currentUser.id, data).catch(error => {
+    console.error("❌ Erro ao sincronizar:", error);
   });
 }
 
 function syncDataFromFirebase() {
-  if (!currentUser || !db) return;
+  if (!window.currentUser || !db) {
+    console.warn("⚠️ Não posso carregar: usuário não logado ou Firebase não pronto");
+    return Promise.resolve();
+  }
 
-  loadUserDataFromFirebase(currentUser.id).then((data) => {
+  console.log("📥 Carregando dados do Firebase...");
+  return loadUserDataFromFirebase(window.currentUser.id).then((data) => {
     if (data) {
+      console.log("✅ Dados carregados, atualizando localStorage...");
       if (data.orcamentos) localStorage.setItem("oficina_orcamentos_v3", data.orcamentos);
       if (data.placas) localStorage.setItem("oficina_placas_salvas_v1", data.placas);
       if (data.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", data.rascunho);
@@ -106,13 +119,14 @@ function syncDataFromFirebase() {
 }
 
 function logout() {
-  stopListening(currentUser?.id);
-  currentUser = null;
+  stopListening(window.currentUser?.id);
+  window.currentUser = null;
   localStorage.removeItem(AUTH_KEY);
   localStorage.removeItem("oficina_orcamentos_v3");
   localStorage.removeItem("oficina_placas_salvas_v1");
   localStorage.removeItem("oficina_rascunho_atual_v1");
   localStorage.removeItem("oficina_dados_v1");
+  console.log("👋 Logout realizado");
   location.reload();
 }
 
@@ -122,7 +136,8 @@ Storage.prototype.setItem = function(key, value) {
   originalSetItem.call(this, key, value);
 
   const syncKeys = ["oficina_orcamentos_v3", "oficina_placas_salvas_v1", "oficina_rascunho_atual_v1", "oficina_dados_v1"];
-  if (syncKeys.includes(key) && currentUser) {
+  if (syncKeys.includes(key) && window.currentUser) {
+    console.log("💾 Detectada mudança em localStorage, sincronizando...", key);
     // Pequeno delay para evitar sincronizações muito frequentes
     setTimeout(() => syncDataToFirebase(), 500);
   }
@@ -130,14 +145,16 @@ Storage.prototype.setItem = function(key, value) {
 
 // Auto-sincronizar periodicamente
 setInterval(() => {
-  if (currentUser) {
+  if (window.currentUser) {
+    console.log("⏰ Sincronização periódica...");
     syncDataToFirebase();
   }
 }, SYNC_INTERVAL);
 
 // Sincronizar ao sair da página
 window.addEventListener("beforeunload", () => {
-  if (currentUser) {
+  if (window.currentUser) {
+    console.log("👋 Sincronizando antes de sair...");
     syncDataToFirebase();
   }
 });

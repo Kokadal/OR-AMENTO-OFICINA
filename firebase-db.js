@@ -13,70 +13,69 @@ const firebaseConfig = {
 let db = null;
 let auth = null;
 
-function initFirebase() {
-  // Inicializar Firebase
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  auth = firebase.auth();
-
-  // Configurar o banco em modo offline quando offline
-  db.goOffline();
-  db.goOnline();
-
-  // Auto-sincronizar dados quando conexão for restaurada
-  if (navigator.onLine) {
-    syncAllDataToFirebase();
-  }
-
-  window.addEventListener("online", syncAllDataToFirebase);
+// Variável global para currentUser (compartilhada com auth.js)
+if (typeof currentUser === "undefined") {
+  window.currentUser = null;
 }
 
-function authenticateFirebaseUser(username, passwordHash) {
-  return new Promise((resolve, reject) => {
-    // Criar email fictício baseado no username
-    const email = `${username}@oficina-app.local`;
+function initFirebase() {
+  try {
+    // Inicializar Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.database();
+    auth = firebase.auth();
     
-    // Tentar criar usuário (se não existir)
-    auth.createUserWithCustomToken(null).catch(() => {
-      // Alternativa: usar autenticação anônima com identificador
-      auth.signInAnonymously().then((result) => {
-        // Salvar username no perfil
-        result.user.updateProfile({ displayName: username }).then(() => {
-          resolve(result.user.uid);
-        }).catch(reject);
-      }).catch(reject);
-    });
-  });
+    console.log("✅ Firebase inicializado com sucesso");
+  } catch (error) {
+    console.error("❌ Erro ao inicializar Firebase:", error);
+  }
 }
 
 function saveUserDataToFirebase(userId, data) {
-  if (!db || !userId) return Promise.resolve();
+  if (!db || !userId) {
+    console.warn("⚠️ Não posso salvar: Firebase ou userId não definidos");
+    return Promise.resolve();
+  }
 
+  console.log("💾 Salvando dados do usuário", userId, "no Firebase");
   return db.ref(`users/${userId}`).set({
     orcamentos: data.orcamentos,
     placas: data.placas,
     rascunho: data.rascunho,
     dadosOficina: data.dadosOficina,
     updatedAt: firebase.database.ServerValue.TIMESTAMP
+  }).then(() => {
+    console.log("✅ Dados salvos com sucesso no Firebase");
   }).catch(error => {
-    console.error("Erro ao salvar no Firebase:", error);
+    console.error("❌ Erro ao salvar no Firebase:", error);
     throw error;
   });
 }
 
 function loadUserDataFromFirebase(userId) {
-  if (!db || !userId) return Promise.resolve(null);
+  if (!db || !userId) {
+    console.warn("⚠️ Não posso carregar: Firebase ou userId não definidos");
+    return Promise.resolve(null);
+  }
 
+  console.log("📥 Carregando dados do usuário", userId, "do Firebase");
   return db.ref(`users/${userId}`).once("value").then((snapshot) => {
-    return snapshot.val();
+    const data = snapshot.val();
+    console.log("✅ Dados carregados do Firebase:", data);
+    return data;
   }).catch(error => {
-    console.error("Erro ao carregar do Firebase:", error);
+    console.error("❌ Erro ao carregar do Firebase:", error);
     return null;
   });
 }
 
 function syncAllDataToFirebase() {
-  if (!currentUser || !db) return;
+  if (!window.currentUser || !db) {
+    console.warn("⚠️ Não posso sincronizar: usuário não logado ou Firebase não pronto");
+    return Promise.resolve();
+  }
 
   const data = {
     orcamentos: localStorage.getItem("oficina_orcamentos_v3"),
@@ -85,24 +84,37 @@ function syncAllDataToFirebase() {
     dadosOficina: localStorage.getItem("oficina_dados_v1")
   };
 
-  saveUserDataToFirebase(currentUser.id, data).catch(error => {
-    console.error("Erro ao sincronizar:", error);
+  console.log("📤 Sincronizando para Firebase...", data);
+  return saveUserDataToFirebase(window.currentUser.id, data).catch(error => {
+    console.error("❌ Erro ao sincronizar:", error);
   });
 }
 
 function listenForRemoteChanges(userId, callback) {
-  if (!db || !userId) return;
+  if (!db || !userId) {
+    console.warn("⚠️ Não posso escutar mudanças: Firebase ou userId não definidos");
+    return;
+  }
 
+  console.log("👂 Escutando mudanças remotas para usuário", userId);
   db.ref(`users/${userId}`).on("value", (snapshot) => {
     const data = snapshot.val();
     if (data) {
+      console.log("🔄 Mudanças remotas detectadas:", data);
       callback(data);
     }
+  }, (error) => {
+    console.error("❌ Erro ao escutar mudanças:", error);
   });
 }
 
 function stopListening(userId) {
-  if (!db || !userId) return;
+  if (!db || !userId) {
+    console.warn("⚠️ Não posso parar escuta: Firebase ou userId não definidos");
+    return;
+  }
+
+  console.log("🛑 Parando escuta para usuário", userId);
   db.ref(`users/${userId}`).off("value");
 }
 
