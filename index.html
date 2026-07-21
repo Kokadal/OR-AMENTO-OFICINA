@@ -8,7 +8,29 @@
   <link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
-  <div class="app">
+  <div id="loginView" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="./logooficina.jpg" alt="Logo AMMAR" width="80" height="80" style="width:80px;height:80px;object-fit:cover;border-radius:8px;background:#000;display:block;margin:0 auto;border:2px solid #ff8a4c;" />
+      </div>
+      <h1>Oficina Orçamentos</h1>
+      <p>Faça login para acessar</p>
+      <form id="loginForm" style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-weight:600;font-size:.95rem;">Usuário</span>
+          <input id="loginUsername" type="text" placeholder="usuario" required style="padding:10px 12px;border:1px solid #262c33;border-radius:8px;background:#0f1214;color:#f5f7fa;font-family:inherit;font-size:1rem;" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font-weight:600;font-size:.95rem;">Senha</span>
+          <input id="loginPassword" type="password" placeholder="••••••••" required style="padding:10px 12px;border:1px solid #262c33;border-radius:8px;background:#0f1214;color:#f5f7fa;font-family:inherit;font-size:1rem;" />
+        </label>
+        <button type="submit" style="padding:12px;background:#ff8a4c;color:#000;border:0;border-radius:8px;font-weight:900;font-size:1rem;cursor:pointer;margin-top:8px;">Entrar</button>
+        <div id="loginError" style="color:#ef4444;font-size:.9rem;text-align:center;display:none;margin-top:8px;"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="app" id="appView" style="display:none;">
     <header class="app-header">
       <button id="menuButton" class="icon-button" aria-label="Abrir menu">☰</button>
       <div class="brand-wrap">
@@ -188,6 +210,7 @@
   <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://accounts.google.com/gsi/client"></script>
   <script src="google-drive-sync.js"></script>
+  <script src="auth.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

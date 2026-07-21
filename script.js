@@ -1384,7 +1384,9 @@ function initEvents() {
   drawerOfficeDataButton.addEventListener("click", openOfficeSettings);
   drawerLogoutButton.addEventListener("click", () => {
     closeDrawer();
-    alert("Logout ainda não foi configurado. Quando conectarmos login real, esse botão vai sair da conta.");
+    if (confirm("Tem certeza que deseja sair?")) {
+      logout();
+    }
   });
 
   document.querySelector("#manualPlateButton").addEventListener("click", openManualPlate);
