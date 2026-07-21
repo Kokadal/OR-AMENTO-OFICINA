@@ -201,20 +201,6 @@ function showView(id) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function renderStatusSummary() {
-  const approved = budgets.filter((budget) => budget.status === "aprovado");
-  const drafts = budgets.filter((budget) => budget.status === "rascunho");
-  const rejected = budgets.filter((budget) => budget.status === "reprovado");
-  const sum = (items) => items.reduce((total, budget) => total + Number(budget.total || 0), 0);
-
-  approvedCount.textContent = approved.length;
-  approvedTotal.textContent = money(sum(approved));
-  draftCount.textContent = drafts.length;
-  draftTotal.textContent = money(sum(drafts));
-  rejectedCount.textContent = rejected.length;
-  rejectedTotal.textContent = money(sum(rejected));
-}
-
 function renderHome() {
   const term = searchInput.value.trim().toLowerCase();
   const filtered = budgets.filter((budget) => {
@@ -223,7 +209,6 @@ function renderHome() {
   });
 
   budgetCount.textContent = budgets.length;
-  renderStatusSummary();
   emptyState.hidden = budgets.length > 0;
 
   if (budgets.length > 0 && filtered.length === 0) {
