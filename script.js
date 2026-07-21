@@ -1497,6 +1497,40 @@ function initEvents() {
     deferredInstallPrompt = null;
     installButton.hidden = true;
   });
+
+  // Google Drive Sync events
+  const syncButton = document.querySelector("#syncGoogleDriveButton");
+  const uploadButton = document.querySelector("#uploadBackupButton");
+  const downloadButton = document.querySelector("#downloadBackupButton");
+  const logoutGDriveButton = document.querySelector("#logoutGoogleDriveButton");
+
+  if (syncButton) {
+    syncButton.addEventListener("click", () => {
+      if (gDriveAccessToken) {
+        uploadBackupToDrive().catch(console.error);
+      } else {
+        loginGoogleDrive();
+      }
+    });
+  }
+
+  if (uploadButton) {
+    uploadButton.addEventListener("click", () => {
+      uploadBackupToDrive().catch(console.error);
+    });
+  }
+
+  if (downloadButton) {
+    downloadButton.addEventListener("click", () => {
+      downloadBackupFromDrive().catch(console.error);
+    });
+  }
+
+  if (logoutGDriveButton) {
+    logoutGDriveButton.addEventListener("click", () => {
+      logoutGoogleDrive();
+    });
+  }
 }
 
 initEvents();

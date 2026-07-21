@@ -193,6 +193,10 @@
       <button id="drawerSettingsButton" class="drawer-main-button">Configurações</button>
       <div id="settingsSubmenu" class="drawer-submenu" hidden>
         <button id="drawerOfficeDataButton">Alterar dados oficina</button>
+        <button id="syncGoogleDriveButton" class="drawer-submenu-button">🔓 Conectar Google Drive</button>
+        <button id="uploadBackupButton" class="drawer-submenu-button" hidden>📤 Fazer backup agora</button>
+        <button id="downloadBackupButton" class="drawer-submenu-button" hidden>📥 Restaurar backup</button>
+        <button id="logoutGoogleDriveButton" class="drawer-submenu-button" hidden>🔒 Desconectar Google Drive</button>
       </div>
       <button id="drawerLogoutButton" class="drawer-main-button">Log out</button>
     </aside>
@@ -200,6 +204,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://accounts.google.com/gsi/client"></script>
+  <script src="google-drive-sync.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
