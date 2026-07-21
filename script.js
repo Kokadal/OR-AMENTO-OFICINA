@@ -971,15 +971,6 @@ function renderDetail(budget) {
       <div id="attachmentList">${renderAttachments(budget)}</div>
     </div>
 
-    <div class="detail-section accept-box">
-      <h3>Link de aceite</h3>
-      <p>Use estes links no PDF ou envie para o cliente aprovar/reprovar.</p>
-      <p><strong>Aprovar:</strong></p>
-      <p class="link-text">${escapeHtml(acceptLink)}</p>
-      <p><strong>Reprovar:</strong></p>
-      <p class="link-text">${escapeHtml(rejectLink)}</p>
-    </div>
-
     <div class="button-row">
       <button id="editButton" class="secondary-button">Alterar orçamento</button>
       <button id="deleteBudgetButton" class="danger-button">Excluir orçamento</button>
