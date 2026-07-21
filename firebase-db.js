@@ -12,6 +12,12 @@ const firebaseConfig = {
 
 let db = null;
 let auth = null;
+let firebaseReady = false;
+
+// Promise que resolve quando Firebase está pronto
+const firebaseReadyPromise = new Promise((resolve) => {
+  window.firebaseReadyResolve = resolve;
+});
 
 // Variável global para currentUser (compartilhada com auth.js)
 if (typeof currentUser === "undefined") {
@@ -20,14 +26,20 @@ if (typeof currentUser === "undefined") {
 
 function initFirebase() {
   try {
+    console.log("🔄 Inicializando Firebase...");
     // Inicializar Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
     db = firebase.database();
     auth = firebase.auth();
+    firebaseReady = true;
     
     console.log("✅ Firebase inicializado com sucesso");
+    console.log("Database URL:", firebaseConfig.databaseURL);
+    
+    // Marcar Firebase como pronto
+    window.firebaseReadyResolve();
   } catch (error) {
     console.error("❌ Erro ao inicializar Firebase:", error);
   }
@@ -120,15 +132,29 @@ function stopListening(userId) {
 
 // Carregar Firebase SDK
 (function() {
+  console.log("📦 Carregando Firebase SDK...");
+  
   const script = document.createElement("script");
   script.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  script.onerror = function() {
+    console.error("❌ Erro ao carregar firebase-app.js");
+  };
   script.onload = function() {
+    console.log("✅ Carregado firebase-app.js");
     const script2 = document.createElement("script");
     script2.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    script2.onerror = function() {
+      console.error("❌ Erro ao carregar firebase-database.js");
+    };
     script2.onload = function() {
+      console.log("✅ Carregado firebase-database.js");
       const script3 = document.createElement("script");
       script3.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+      script3.onerror = function() {
+        console.error("❌ Erro ao carregar firebase-auth.js");
+      };
       script3.onload = function() {
+        console.log("✅ Carregado firebase-auth.js");
         // Firebase está pronto
         if (document.readyState === "loading") {
           document.addEventListener("DOMContentLoaded", initFirebase);
