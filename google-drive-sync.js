@@ -7,8 +7,8 @@ let gDriveAccessToken = localStorage.getItem("gDrive_accessToken");
 let gDriveFolderId = localStorage.getItem("gDrive_folderId");
 
 // ID do aplicativo OAuth (você precisa criar em console.cloud.google.com)
-const CLIENT_ID = "SEU_CLIENT_ID_AQUI.apps.googleusercontent.com";
-const API_KEY = "SUA_API_KEY_AQUI";
+const CLIENT_ID = "914494869974-2ll90pi4kan352ln836cknp8n78o2c94.apps.googleusercontent.com";
+const API_KEY = "AIzaSyCvO3U4wgdGeiZd2govxN1551AYEzOMV10";
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
