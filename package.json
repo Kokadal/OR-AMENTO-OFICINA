@@ -1,0 +1,11 @@
+{
+  "name": "orcamento-mecanico",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check script.js && node --check server.js && node --check service-worker.js && node --check scripts/generate-icons.js",
+    "generate-icons": "node scripts/generate-icons.js",
+    "init-repo": "node scripts/init-git-repo.js"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Orçamento Mecânico",
+  "short_name": "Oficina",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef2f5",
+  "theme_color": "#116a5b",
+  "icons": []
+}

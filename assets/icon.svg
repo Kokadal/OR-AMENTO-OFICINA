@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Orcamento Mecanico">
+  <rect width="512" height="512" rx="96" fill="#116a5b"/>
+  <circle cx="178" cy="256" r="82" fill="none" stroke="#ffffff" stroke-width="42"/>
+  <path d="M292 344V168h44l54 88 54-88h44v176h-48V252l-38 62h-24l-38-62v92z" fill="#ffffff"/>
+  <path d="M112 396h288" stroke="#d7ede8" stroke-width="24" stroke-linecap="round"/>
+</svg>

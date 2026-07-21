@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Oficina - Orçamentos</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <button id="menuButton" class="icon-button" aria-label="Abrir menu">☰</button>
+      <div class="brand-wrap">
+        <img class="brand-mark" src="./logooficina.jpg" alt="Logo AMMAR" width="42" height="42" style="width:42px;height:42px;object-fit:cover;border-radius:6px;background:#000;" />
+        <div>
+          <p class="eyebrow">Oficina</p>
+          <h1 id="screenTitle">Orçamentos</h1>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="homeButtonTop" class="icon-button" aria-label="Início">⌂</button>
+        <button id="searchButton" class="icon-button" aria-label="Pesquisar">⌕</button>
+      </div>
+    </header>
+
+    <section id="searchPanel" class="search-panel">
+      <label>
+        Buscar por cliente, O.S, placa, status ou motivo
+        <input id="searchInput" type="search" placeholder="Digite para buscar..." />
+      </label>
+    </section>
+
+    <main class="screen">
+      <section id="homeView" class="view active">
+        <div class="summary-band">
+          <strong id="budgetCount">0</strong>
+          <span>orçamentos salvos</span>
+          <button id="installButton" class="secondary-button install-button" hidden>Instalar app</button>
+        </div>
+
+        <div id="statusSummary" class="status-summary">
+          <div class="summary-card approved">
+            <span>Aprovados</span>
+            <strong id="approvedCount">0</strong>
+            <small id="approvedTotal">R$ 0,00</small>
+          </div>
+          <div class="summary-card draft">
+            <span>Rascunhos</span>
+            <strong id="draftCount">0</strong>
+            <small id="draftTotal">R$ 0,00</small>
+          </div>
+          <div class="summary-card rejected">
+            <span>Reprovados</span>
+            <strong id="rejectedCount">0</strong>
+            <small id="rejectedTotal">R$ 0,00</small>
+          </div>
+        </div>
+
+        <div id="budgetList" class="budget-list"></div>
+
+        <div id="emptyState" class="empty-state">
+          <strong>Nenhum orçamento ainda</strong>
+          <span>Toque no + para criar o primeiro.</span>
+        </div>
+      </section>
+
+      <section id="plateView" class="view">
+        <div class="step-card camera-card">
+          <p class="step-label">Passo 1 de 5</p>
+          <h2>Ler placa</h2>
+          <div class="camera-box">
+            <video id="cameraPreview" autoplay playsinline muted></video>
+            <canvas id="plateCanvas" hidden></canvas>
+            <div class="plate-frame">PLACA</div>
+          </div>
+          <p id="cameraStatus" class="status-text">Abrindo câmera traseira...</p>
+          <div class="button-row">
+            <button id="manualPlateButton" class="secondary-button">Manual</button>
+            <button id="capturePlateButton" class="primary-button">Capturar</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="manualPlateView" class="view">
+        <div class="step-card">
+          <p class="step-label">Passo 1 de 5</p>
+          <h2>Digite a placa</h2>
+          <p class="status-text">Digite a placa para consultar a API Placas.</p>
+          <label class="big-label">
+            Placa
+            <input id="manualPlateInput" class="big-input plate-input" maxlength="7" placeholder="ABC1D23" autocomplete="off" />
+          </label>
+          <div id="plateLookupStatus" class="lookup-status" hidden></div>
+          <div class="button-row">
+            <button id="backToCameraButton" class="secondary-button">Voltar</button>
+            <button id="confirmManualPlateButton" class="primary-button">Consultar placa</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="vehicleView" class="view">
+        <div class="step-card">
+          <p class="step-label">Passo 2 de 5</p>
+          <h2>Confirmar veículo</h2>
+          <div class="form-stack">
+            <label>Placa <input id="vehiclePlate" class="plate-input" /></label>
+            <label>Marca <input id="vehicleBrand" /></label>
+            <label>Modelo <input id="vehicleModel" /></label>
+            <label>Ano <input id="vehicleYear" /></label>
+            <label>Cor <input id="vehicleColor" /></label>
+          </div>
+          <div class="button-row">
+            <button id="backVehicleButton" class="secondary-button">Voltar</button>
+            <button id="confirmVehicleButton" class="primary-button">Continuar</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="kmView" class="view">
+        <div class="step-card">
+          <p class="step-label">Passo 3 de 5</p>
+          <h2>KM atual</h2>
+          <label class="big-label">
+            Quilometragem do veículo
+            <input id="vehicleKm" class="big-input" inputmode="numeric" placeholder="Ex: 85000" />
+          </label>
+          <div class="button-row">
+            <button id="backKmButton" class="secondary-button">Voltar</button>
+            <button id="confirmKmButton" class="primary-button">Continuar</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="clientView" class="view">
+        <div class="step-card">
+          <p id="clientStepLabel" class="step-label">Passo 4 de 5</p>
+          <h2 id="clientStepTitle">Nome do cliente</h2>
+          <label id="clientFieldLabel" class="big-label">
+            Nome
+            <input id="clientStepInput" class="big-input" />
+          </label>
+          <div class="button-row">
+            <button id="clientBackButton" class="secondary-button">Voltar</button>
+            <button id="clientNextButton" class="primary-button">Próximo</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="budgetTextView" class="view">
+        <div class="step-card wide-card">
+          <p class="step-label">Passo 5 de 5</p>
+          <h2>Diga o orçamento e valor</h2>
+          <textarea id="budgetTextInput" class="budget-text" placeholder="alinhamento 50&#10;mão de obra 130&#10;2 pivôs 10&#10;peça: filtro de óleo 40&#10;desconto 10%"></textarea>
+          <div id="parsedPreview" class="parsed-preview"></div>
+          <div class="button-row">
+            <button id="backBudgetTextButton" class="secondary-button">Voltar</button>
+            <button id="finishBudgetButton" class="primary-button">Salvar orçamento</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="detailView" class="view">
+        <div id="detailCard" class="detail-card"></div>
+      </section>
+
+      <section id="officeView" class="view">
+        <div class="step-card">
+          <p class="step-label">Dados que aparecem no PDF</p>
+          <h2>Dados da oficina</h2>
+          <div class="form-stack">
+            <label>Nome da oficina <input id="officeNameInput" /></label>
+            <label>Endereço <input id="officeAddressInput" /></label>
+            <label>Telefone <input id="officePhoneInput" /></label>
+            <label>E-mail de contato <input id="officeEmailInput" /></label>
+            <label>Token API Placas <input id="officeApiTokenInput" /></label>
+          </div>
+          <div class="button-row">
+            <button id="cancelOfficeButton" class="secondary-button">Cancelar</button>
+            <button id="saveOfficeButton" class="primary-button">Salvar dados</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <button id="newBudgetButton" class="fab" aria-label="Novo orçamento">+</button>
+
+    <aside id="drawer" class="drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <strong>Menu</strong>
+        <button id="closeMenuButton" class="icon-button" aria-label="Fechar menu">×</button>
+      </div>
+      <button id="drawerSettingsButton" class="drawer-main-button">Configurações</button>
+      <div id="settingsSubmenu" class="drawer-submenu" hidden>
+        <button id="drawerOfficeDataButton">Alterar dados oficina</button>
+      </div>
+      <button id="drawerLogoutButton" class="drawer-main-button">Log out</button>
+    </aside>
+    <div id="overlay" class="overlay" hidden></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

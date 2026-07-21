@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Limpar cache - AMMAR Oficina</title>
+  <style>
+    :root {
+      --bg: #eef2f5;
+      --card: #ffffff;
+      --text: #17212b;
+      --muted: #667482;
+      --accent: #116a5b;
+      --danger: #a34216;
+      --line: #d6e0e5;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 20px;
+    }
+
+    main {
+      width: min(100%, 520px);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 14px 36px rgba(26, 40, 52, 0.13);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 28px;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 17px;
+    }
+
+    .warning {
+      background: #fff5f3;
+      color: var(--danger);
+      border: 1px solid #f2c4bb;
+      border-radius: 14px;
+      padding: 14px;
+      font-weight: 700;
+    }
+
+    button, a {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button {
+      background: var(--danger);
+      color: white;
+    }
+
+    a {
+      background: var(--accent);
+      color: white;
+    }
+
+    #status {
+      margin-top: 14px;
+      color: var(--text);
+      font-weight: 700;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Limpar cache do app</h1>
+
+    <p>
+      Use esta tela apenas uma vez para apagar dados antigos de teste, rascunhos antigos,
+      versões antigas em cache e service workers antigos.
+    </p>
+
+    <div class="warning">
+      Atenção: isso apaga os orçamentos salvos localmente neste navegador.
+    </div>
+
+    <button id="cleanButton">Limpar tudo agora</button>
+
+    <a href="./index.html">Voltar para o app</a>
+
+    <div id="status"></div>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById("status");
+
+    async function limparTudo() {
+      const mensagens = [];
+
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        mensagens.push("✓ localStorage/sessionStorage apagados");
+      } catch (error) {
+        mensagens.push("× não consegui limpar localStorage");
+      }
+
+      try {
+        if ("caches" in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map((name) => caches.delete(name)));
+          mensagens.push(`✓ ${cacheNames.length} cache(s) apagado(s)`);
+        }
+      } catch (error) {
+        mensagens.push("× não consegui limpar caches");
+      }
+
+      try {
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+          mensagens.push(`✓ ${registrations.length} service worker(s) removido(s)`);
+        }
+      } catch (error) {
+        mensagens.push("× não consegui remover service workers");
+      }
+
+      statusEl.textContent = mensagens.join("\n") + "\n\nPronto! Clique em voltar para o app.";
+    }
+
+    document.getElementById("cleanButton").addEventListener("click", limparTudo);
+  </script>
+</body>
+</html>

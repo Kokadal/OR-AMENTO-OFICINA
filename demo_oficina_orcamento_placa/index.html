@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Oficina Fácil - Orçamentos</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="app">
+    <header class="topo">
+      <button class="menu-btn" onclick="abrirMenu()">☰</button>
+      <h1>Oficina Fácil</h1>
+      <button class="search-btn" onclick="focarBusca()">🔎</button>
+    </header>
+
+    <aside id="menuLateral" class="menu-lateral">
+      <button class="fechar" onclick="fecharMenu()">×</button>
+      <h2>Opções</h2>
+      <p>⚙️ Configurações</p>
+      <p>📄 Modelo de PDF</p>
+      <p>🚪 Deslogar</p>
+    </aside>
+
+    <main id="telaLista" class="tela ativa">
+      <input 
+        id="busca" 
+        class="busca" 
+        type="text" 
+        placeholder="Pesquisar por nome, número ou placa..."
+        oninput="renderizarLista()"
+      />
+
+      <section id="listaOrcamentos" class="lista"></section>
+
+      <button class="botao-flutuante" onclick="abrirLeituraPlaca()">+</button>
+    </main>
+
+    <main id="telaPlaca" class="tela">
+      <section class="card grande">
+        <h2>Ler placa do veículo</h2>
+        <p>Aponte a câmera para a placa. Se não conseguir ler, clique em “Manual”.</p>
+
+        <video id="camera" autoplay playsinline></video>
+        <canvas id="fotoPlaca" style="display:none;"></canvas>
+
+        <div class="acoes coluna">
+          <button class="btn principal" onclick="capturarPlaca()">Capturar placa</button>
+          <button class="btn secundario" onclick="abrirManualPlaca()">Manual</button>
+          <button class="btn secundario" onclick="voltarLista()">Cancelar</button>
+        </div>
+
+        <div id="areaManual" class="manual escondido">
+          <label>Digite a placa:</label>
+          <input id="placaManual" class="campo" placeholder="Ex: ABC1D23 ou ABC1234" maxlength="8">
+          <button class="btn principal" onclick="confirmarPlacaManual()">Buscar dados do veículo</button>
+        </div>
+
+        <div id="statusPlaca" class="status"></div>
+      </section>
+    </main>
+
+    <main id="telaVeiculo" class="tela">
+      <section class="card grande">
+        <h2>Dados do veículo</h2>
+        <p>Confira ou corrija as informações antes de continuar.</p>
+
+        <input id="veiculoPlaca" class="campo" placeholder="Placa">
+        <input id="veiculoModelo" class="campo" placeholder="Modelo">
+        <input id="veiculoAno" class="campo" placeholder="Ano">
+        <input id="veiculoCor" class="campo" placeholder="Cor">
+
+        <div class="acoes">
+          <button class="btn secundario" onclick="abrirLeituraPlaca()">Voltar</button>
+          <button class="btn principal" onclick="confirmarVeiculo()">Continuar</button>
+        </div>
+      </section>
+    </main>
+
+    <main id="telaCriar" class="tela">
+      <section class="card grande">
+        <h2 id="tituloEtapa">Novo orçamento</h2>
+        <p id="textoAjuda">Preencha as informações abaixo.</p>
+
+        <div id="conteudoEtapa"></div>
+
+        <div class="acoes">
+          <button class="btn secundario" onclick="voltarEtapa()">Voltar</button>
+          <button id="btnProximo" class="btn principal" onclick="proximaEtapa()">Próximo</button>
+        </div>
+      </section>
+    </main>
+
+    <main id="telaResultado" class="tela">
+      <section class="card grande">
+        <h2>Orçamento gerado ✅</h2>
+        <div id="previewOrcamento" class="preview"></div>
+
+        <div class="acoes coluna">
+          <button class="btn principal" onclick="baixarPDF()">Gerar PDF</button>
+          <button class="btn whatsapp" onclick="compartilharWhatsApp()">Compartilhar WhatsApp</button>
+          <button class="btn secundario" onclick="compartilharEmail()">Enviar por Email</button>
+          <button class="btn secundario" onclick="voltarLista()">Voltar para lista</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
