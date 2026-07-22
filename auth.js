@@ -11,8 +11,12 @@ function initAuth() {
   const loginError = document.getElementById("loginError");
 
   // Aguardar Firebase estar pronto ANTES de fazer qualquer sincronização
-  Promise.resolve(firebaseReadyPromise).then(() => {
-    console.log("✅ Firebase pronto! Iniciando autenticação...");
+  Promise.resolve(firebaseReadyPromise).then((isFirebaseReady) => {
+    if (isFirebaseReady) {
+      console.log("✅ Firebase pronto! Iniciando autenticação...");
+    } else {
+      console.warn("⚠️ Firebase indisponível. Login seguirá sem sincronização.");
+    }
     
     // Verificar se está logado
     const savedAuth = localStorage.getItem(AUTH_KEY);
@@ -50,38 +54,43 @@ function initAuth() {
       loginError.style.display = "none";
       loginError.textContent = "";
 
-      // Validação simples
-      if (username === "roberto" && password === "senha321@@") {
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "Usuário ou senha inválido");
+        }
+
         console.log("✅ Login bem-sucedido para:", username);
-        // Criar ID de usuário determinístico
-        const userId = btoa("roberto"); // Converter para base64 para ID consistente
+        // Manter o ID já usado no Firebase para preservar os dados existentes.
+        const userId = btoa(username.toLowerCase());
         
-        window.currentUser = { id: userId, username: "roberto" };
+        window.currentUser = { id: userId, username: result.user.username };
         localStorage.setItem(AUTH_KEY, JSON.stringify(window.currentUser));
 
-        // Carregar dados do Firebase
-        syncDataFromFirebase().then(() => {
-          // Escutar mudanças remotas
-          listenForRemoteChanges(userId, (remoteData) => {
-            console.log("🔄 Atualizando dados com sincronização remota...");
-            if (remoteData.orcamentos) localStorage.setItem("oficina_orcamentos_v3", remoteData.orcamentos);
-            if (remoteData.placas) localStorage.setItem("oficina_placas_salvas_v1", remoteData.placas);
-            if (remoteData.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", remoteData.rascunho);
-            if (remoteData.dadosOficina) localStorage.setItem("oficina_dados_v1", remoteData.dadosOficina);
-            if (window.renderHome) renderHome();
-          });
+        // Abrir o app imediatamente; a nuvem não pode bloquear o login.
+        showApp();
 
-          showApp();
+        // Escutar e carregar mudanças remotas em segundo plano.
+        listenForRemoteChanges(userId, (remoteData) => {
+          console.log("🔄 Atualizando dados com sincronização remota...");
+          if (remoteData.orcamentos) localStorage.setItem("oficina_orcamentos_v3", remoteData.orcamentos);
+          if (remoteData.placas) localStorage.setItem("oficina_placas_salvas_v1", remoteData.placas);
+          if (remoteData.rascunho) localStorage.setItem("oficina_rascunho_atual_v1", remoteData.rascunho);
+          if (remoteData.dadosOficina) localStorage.setItem("oficina_dados_v1", remoteData.dadosOficina);
+          if (window.renderHome) renderHome();
         });
-      } else {
+        syncDataFromFirebase();
+      } catch (error) {
         loginError.style.display = "block";
-        loginError.textContent = "Usuário ou senha inválido";
+        loginError.textContent = error.message || "Não foi possível entrar";
       }
     });
-  }).catch(error => {
-    console.error("❌ Erro ao inicializar Firebase:", error);
-    loginError.style.display = "block";
-    loginError.textContent = "Erro ao conectar com servidor Firebase";
   });
 }
 
