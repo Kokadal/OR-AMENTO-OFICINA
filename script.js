@@ -908,9 +908,6 @@ function cloneSafe(value) {
 
 
 function renderDetail(budget) {
-  const acceptLink = buildApprovalLink(budget.os, "aprovar");
-  const rejectLink = buildApprovalLink(budget.os, "reprovar");
-
   document.querySelector("#detailCard").innerHTML = `
     <div class="detail-head">
       <div>
@@ -925,10 +922,6 @@ function renderDetail(budget) {
     <div class="detail-section">
       <h3>Status</h3>
       <span class="status-pill status-${budget.status}">${statusLabel(budget.status)}</span>
-      <div class="button-row">
-        <button id="approveButton" class="primary-button">Marcar aprovado</button>
-        <button id="rejectButton" class="danger-button">Marcar reprovado</button>
-      </div>
     </div>
 
     <div class="detail-section">
@@ -963,23 +956,19 @@ function renderDetail(budget) {
       <div id="attachmentList">${renderAttachments(budget)}</div>
     </div>
 
-    <div class="button-row">
-      <button id="editButton" class="secondary-button">Alterar orçamento</button>
-      <button id="deleteBudgetButton" class="danger-button">Excluir orçamento</button>
-      <button id="pdfButton" class="primary-button">Gerar PDF</button>
-      <button id="whatsButton" class="secondary-button">WhatsApp</button>
-      <button id="emailButton" class="secondary-button">Email</button>
-      <button id="homeButton" class="secondary-button">Voltar ao início</button>
+    <div class="budget-actions">
+      <button id="editButton" class="secondary-button action-button" aria-label="Alterar orçamento"><span class="action-icon" aria-hidden="true">✎</span><span>Alterar orçamento</span></button>
+      <button id="deleteBudgetButton" class="danger-button action-button" aria-label="Excluir orçamento"><span class="action-icon" aria-hidden="true">🗑</span><span>Excluir orçamento</span></button>
+      <button id="pdfButton" class="primary-button action-button" aria-label="Gerar PDF"><span class="action-icon action-icon-pdf" aria-hidden="true">PDF</span><span>Gerar PDF</span></button>
+      <button id="whatsButton" class="secondary-button action-button" aria-label="Enviar pelo WhatsApp"><span class="action-icon action-icon-whatsapp" aria-hidden="true">◉</span><span>WhatsApp</span></button>
+      <button id="homeButton" class="secondary-button action-button" aria-label="Voltar ao início"><span class="action-icon" aria-hidden="true">←</span><span>Voltar</span></button>
     </div>
   `;
 
-  document.querySelector("#approveButton").addEventListener("click", () => updateBudgetStatus(budget.os, "aprovado"));
-  document.querySelector("#rejectButton").addEventListener("click", () => updateBudgetStatus(budget.os, "reprovado"));
   document.querySelector("#editButton").addEventListener("click", () => editBudget(budget.os));
   document.querySelector("#deleteBudgetButton").addEventListener("click", () => deleteBudget(budget.os));
   document.querySelector("#pdfButton").addEventListener("click", () => generatePdf(budget));
   document.querySelector("#whatsButton").addEventListener("click", () => shareWhatsApp(budget));
-  document.querySelector("#emailButton").addEventListener("click", () => shareEmail(budget));
   document.querySelector("#homeButton").addEventListener("click", () => showView("homeView"));
   document.querySelector("#attachmentInput").addEventListener("change", (event) => addAttachments(budget.os, event.target.files));
 }
