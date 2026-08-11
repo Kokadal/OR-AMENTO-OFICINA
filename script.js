@@ -1122,21 +1122,16 @@ function shareEmail(budget) {
   window.location.href = `mailto:${budget.cliente.email || ""}?subject=${subject}&body=${body}`;
 }
 
-async function generatePdf(budget) {
-  try {
-    const blob = await buildBudgetPdfBlob(budget);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = getBudgetPdfFileName(budget);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  } catch (error) {
-    console.error("Erro ao gerar PDF:", error);
-    alert("Não foi possível gerar o PDF. Atualize a página e tente novamente.");
+function generatePdf(budget) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("O navegador bloqueou a janela do PDF. Permita pop-ups para este site e tente novamente.");
+    return;
   }
+
+  printWindow.document.open();
+  printWindow.document.write(buildAmmarPdfHtml(budget));
+  printWindow.document.close();
 }
 
 function getBudgetPdfFileName(budget) {
@@ -1271,7 +1266,7 @@ function buildAmmarPdfHtml(budget) {
 <div class="grand-total"><span>SOMA TOTAL: ${money(budget.total)}</span></div>
 ${buildPhotoPrintSection(budget)}
 </main>
-<script>window.onload=function(){setTimeout(function(){window.print()},500)}<\/script>
+<script>window.onload=function(){var images=Array.from(document.images);Promise.all(images.map(function(image){return image.complete?Promise.resolve():new Promise(function(resolve){image.onload=resolve;image.onerror=resolve})})).then(function(){setTimeout(function(){window.print()},250)})}<\/script>
 </body>
 </html>`;
 }
