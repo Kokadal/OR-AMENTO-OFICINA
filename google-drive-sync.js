@@ -9,6 +9,7 @@ const API_KEY = "AIzaSyCww4EvI6uEBbtNhAOhOM9xOziOG1Llgw4";
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_API_URL = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3";
+const DRIVE_PENDING_BUDGETS_KEY = "gDrive_pendingBudgets";
 
 let gDriveAccessToken = null;
 let gDriveTokenClient = null;
@@ -72,6 +73,7 @@ async function loginGoogleDrive() {
     const folderId = await ensureSyncFolder();
     updateSyncButton(true);
     showNotification("✅ Google Drive conectado e pasta da oficina criada!");
+    syncPendingDriveBudgets().catch(console.error);
     return folderId;
   } catch (error) {
     console.error("Erro ao conectar Google Drive:", error);
@@ -221,6 +223,153 @@ async function uploadJsonFile(name, parentId, data, existingFileId = null) {
   });
 }
 
+function sanitizeDriveName(value) {
+  return String(value || "arquivo")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getBudgetDriveFolderName(budget) {
+  const os = String(budget.os || 0).padStart(6, "0");
+  const plate = String(budget.veiculo?.placa || "SEM-PLACA").toUpperCase();
+  return `OS-${os}_${sanitizeDriveName(plate)}`;
+}
+
+async function uploadBlobFile(name, mimeType, parentId, blob, existingFileId = null) {
+  const boundary = `ammar_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const metadata = { name: sanitizeDriveName(name), mimeType: mimeType || "application/octet-stream" };
+  if (!existingFileId) metadata.parents = [parentId];
+  const prefix = [
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    JSON.stringify(metadata),
+    `--${boundary}`,
+    `Content-Type: ${mimeType || "application/octet-stream"}`,
+    "",
+    "",
+  ].join("\r\n");
+  const body = new Blob([prefix, blob, `\r\n--${boundary}--`], { type: `multipart/related; boundary=${boundary}` });
+  const method = existingFileId ? "PATCH" : "POST";
+  const filePath = existingFileId ? `/files/${encodeURIComponent(existingFileId)}` : "/files";
+  return driveFetch(`${DRIVE_UPLOAD_URL}${filePath}?uploadType=multipart&fields=id,webViewLink`, {
+    method,
+    headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+    body,
+  });
+}
+
+async function dataUrlToBlob(dataUrl) {
+  const response = await fetch(dataUrl);
+  if (!response.ok) throw new Error("Não foi possível preparar o anexo para envio.");
+  return response.blob();
+}
+
+async function ensureBudgetDriveFolder(budget) {
+  const rootFolderId = await ensureSyncFolder();
+  const savedFolderId = budget.driveArchive?.folderId;
+  if (savedFolderId) return savedFolderId;
+  const name = getBudgetDriveFolderName(budget);
+  return await findDriveFolder(name, rootFolderId) || createDriveFolder(name, rootFolderId);
+}
+
+function readPendingBudgetIds() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(DRIVE_PENDING_BUDGETS_KEY));
+    return Array.isArray(ids) ? ids.map(Number).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingBudgetIds(ids) {
+  localStorage.setItem(DRIVE_PENDING_BUDGETS_KEY, JSON.stringify([...new Set(ids.map(Number).filter(Boolean))]));
+}
+
+function queueBudgetDriveSync(os) {
+  if (!Number(os)) return;
+  writePendingBudgetIds([...readPendingBudgetIds(), Number(os)]);
+  if (hasValidGoogleDriveToken()) syncPendingDriveBudgets().catch(console.error);
+}
+
+async function syncBudgetToDrive(os) {
+  const budget = budgets.find((item) => Number(item.os) === Number(os));
+  if (!budget) return false;
+  const folderId = await ensureBudgetDriveFolder(budget);
+  budget.driveArchive = { ...(budget.driveArchive || {}), folderId };
+
+  const pdfBlob = await buildBudgetPdfBlob(budget);
+  const pdfName = getBudgetPdfFileName(budget);
+  const existingPdfId = budget.driveArchive.pdfFileId || await findDriveFile(pdfName, folderId);
+  const pdfResult = await uploadBlobFile(pdfName, "application/pdf", folderId, pdfBlob, existingPdfId);
+  budget.driveArchive.pdfFileId = pdfResult.id;
+  budget.driveArchive.pdfLink = pdfResult.webViewLink || budget.driveArchive.pdfLink || "";
+
+  for (const attachment of budget.anexos || []) {
+    if (!attachment.dataUrl) continue;
+    const blob = await dataUrlToBlob(attachment.dataUrl);
+    const attachmentName = `${String(attachment.id || "").slice(0, 8)}_${sanitizeDriveName(attachment.name)}`;
+    const result = await uploadBlobFile(
+      attachmentName,
+      attachment.type,
+      folderId,
+      blob,
+      attachment.driveFileId || null
+    );
+    attachment.driveFileId = result.id;
+    attachment.driveLink = result.webViewLink || attachment.driveLink || "";
+  }
+
+  const dataFileId = budget.driveArchive.dataFileId || await findDriveFile("dados.json", folderId);
+  const archiveData = cloneSafe(budget);
+  archiveData.anexos = (archiveData.anexos || []).map(({ dataUrl, ...file }) => file);
+  const dataResult = await uploadJsonFile("dados.json", folderId, archiveData, dataFileId);
+  budget.driveArchive.dataFileId = dataResult.id;
+  budget.driveArchive.syncedAt = new Date().toISOString();
+  saveBudgets();
+  return true;
+}
+
+let isSyncingDriveBudgets = false;
+
+async function syncPendingDriveBudgets() {
+  if (isSyncingDriveBudgets || !hasValidGoogleDriveToken()) return;
+  isSyncingDriveBudgets = true;
+  const pending = readPendingBudgetIds();
+  const remaining = [...pending];
+  try {
+    for (const os of pending) {
+      showNotification(`☁️ Salvando O.S #${os} no Drive...`);
+      try {
+        await syncBudgetToDrive(os);
+        const index = remaining.indexOf(os);
+        if (index >= 0) remaining.splice(index, 1);
+        writePendingBudgetIds(remaining);
+      } catch (error) {
+        console.error(`Erro ao sincronizar O.S #${os}:`, error);
+        showNotification(`❌ O.S #${os} pendente: ${error.message || "erro no Drive"}`);
+        if (!hasValidGoogleDriveToken()) break;
+      }
+    }
+    if (pending.length && !remaining.length) showNotification("✅ Orçamentos salvos no Google Drive!");
+  } finally {
+    isSyncingDriveBudgets = false;
+  }
+}
+
+async function syncAllBudgetsToDrive() {
+  if (!hasValidGoogleDriveToken()) {
+    showNotification("❌ Conecte novamente ao Google Drive");
+    return;
+  }
+  writePendingBudgetIds(budgets.map((budget) => budget.os));
+  await syncPendingDriveBudgets();
+  await uploadBackupToDrive();
+}
+
 async function uploadBackupToDrive() {
   if (!hasValidGoogleDriveToken()) {
     showNotification("❌ Conecte novamente ao Google Drive");
@@ -299,7 +448,7 @@ function showNotification(message) {
 }
 
 setInterval(() => {
-  if (hasValidGoogleDriveToken()) uploadBackupToDrive().catch(console.error);
+  if (hasValidGoogleDriveToken()) syncPendingDriveBudgets().catch(console.error);
 }, 5 * 60 * 1000);
 
 if (document.readyState === "loading") {

@@ -891,6 +891,7 @@ function finishBudget() {
     renderHome();
     renderDetail(safeDraft);
     showView("detailView");
+    queueBudgetDriveSync(safeDraft.os);
   } catch (error) {
     console.error("Erro ao finalizar orçamento:", error);
     alert("Ocorreu um erro ao finalizar o orçamento. Corrigi o fluxo para evitar travamento; tente novamente ou revise os itens digitados.");
@@ -1025,6 +1026,7 @@ async function addAttachments(os, files) {
   budget.atualizadoEm = nowIso();
   saveBudgets();
   renderDetail(budget);
+  queueBudgetDriveSync(budget.os);
 }
 
 function removeAttachment(os, attachmentId) {
@@ -1034,6 +1036,7 @@ function removeAttachment(os, attachmentId) {
   budget.atualizadoEm = nowIso();
   saveBudgets();
   renderDetail(budget);
+  queueBudgetDriveSync(budget.os);
 }
 
 function fileToDataUrl(file) {
@@ -1091,6 +1094,7 @@ function updateBudgetStatus(os, status) {
   saveBudgets();
   renderHome();
   renderDetail(budget);
+  queueBudgetDriveSync(budget.os);
   return true;
 }
 
@@ -1159,26 +1163,100 @@ function shareEmail(budget) {
   window.location.href = `mailto:${budget.cliente.email || ""}?subject=${subject}&body=${body}`;
 }
 
-function generatePdf(budget) {
-  const html = buildAmmarPdfHtml(budget);
-  const printWindow = window.open("", "_blank");
-
-  if (!printWindow) {
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+async function generatePdf(budget) {
+  try {
+    const blob = await buildBudgetPdfBlob(budget);
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `OS_${budget.os}_AMMAR.html`;
+    link.download = getBudgetPdfFileName(budget);
     document.body.appendChild(link);
     link.click();
     link.remove();
-    alert("O navegador bloqueou a janela. Baixei um HTML da O.S. Abra e use Imprimir > Salvar como PDF.");
-    return;
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    console.error("Erro ao gerar PDF:", error);
+    alert("Não foi possível gerar o PDF. Atualize a página e tente novamente.");
+  }
+}
+
+function getBudgetPdfFileName(budget) {
+  const os = String(budget.os || 0).padStart(6, "0");
+  const plate = normalizePlate(budget.veiculo?.placa) || "SEM-PLACA";
+  return `OS_${os}_${plate}.pdf`;
+}
+
+async function buildBudgetPdfBlob(budget) {
+  const JsPdf = window.jspdf?.jsPDF;
+  if (!JsPdf) throw new Error("Biblioteca de PDF não carregada.");
+
+  const doc = new JsPdf({ unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const services = getBudgetServices(budget);
+  const parts = getBudgetParts(budget);
+
+  doc.setFillColor(255, 138, 76);
+  doc.rect(0, 0, pageWidth, 30, "F");
+  doc.setTextColor(12, 13, 14);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text(OFFICE.nome || "AMMAR OFICINA", 14, 13);
+  doc.setFontSize(10);
+  doc.text(`O.S #${budget.os}  •  ${budget.data}  •  ${statusLabel(budget.status)}`, 14, 22);
+
+  doc.setTextColor(25, 25, 25);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Cliente: ${budget.cliente?.nome || ""}`, 14, 40);
+  doc.text(`Telefone: ${budget.cliente?.telefone || ""}`, 14, 47);
+  doc.text(`Veículo: ${budget.veiculo?.placa || ""} - ${budget.veiculo?.modelo || ""}`, 14, 54);
+  doc.text(`KM: ${budget.veiculo?.km || "Não informado"}`, 14, 61);
+
+  const rows = [...services, ...parts].map((item) => [
+    item.tipo === "peca" ? "Peça" : "Serviço",
+    String(item.qtd || 1),
+    item.descricao || "",
+    money(item.valor),
+  ]);
+
+  doc.autoTable({
+    startY: 68,
+    head: [["Tipo", "Qtd.", "Descrição", "Valor"]],
+    body: rows,
+    theme: "grid",
+    headStyles: { fillColor: [31, 35, 39], textColor: [255, 255, 255] },
+    styles: { fontSize: 9, cellPadding: 2.5 },
+    columnStyles: { 1: { halign: "center", cellWidth: 16 }, 3: { halign: "right", cellWidth: 34 } },
+  });
+
+  let cursorY = (doc.lastAutoTable?.finalY || 75) + 10;
+  if (cursorY > 260) {
+    doc.addPage();
+    cursorY = 20;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.text(`Subtotal: ${money(budget.subtotal)}`, 196, cursorY, { align: "right" });
+  doc.text(`Desconto: ${money(budget.desconto)}`, 196, cursorY + 7, { align: "right" });
+  doc.setFontSize(14);
+  doc.text(`TOTAL: ${money(budget.total)}`, 196, cursorY + 16, { align: "right" });
+
+  const photos = (budget.anexos || []).filter((file) => /^image\/(jpeg|png|webp)$/i.test(file.type || "")).slice(0, 6);
+  if (photos.length) {
+    doc.addPage();
+    doc.setFontSize(15);
+    doc.text("Fotos da O.S", 14, 18);
+    for (let index = 0; index < photos.length; index++) {
+      const x = index % 2 === 0 ? 14 : 108;
+      const y = 26 + Math.floor(index / 2) * 82;
+      try {
+        doc.addImage(photos[index].dataUrl, undefined, x, y, 88, 70, undefined, "FAST");
+      } catch (error) {
+        console.warn("Foto não incluída no PDF:", photos[index].name, error);
+      }
+    }
   }
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  return doc.output("blob");
 }
 
 function buildAmmarPdfHtml(budget) {
@@ -1498,8 +1576,8 @@ function initEvents() {
 
   if (syncButton) {
     syncButton.addEventListener("click", () => {
-      if (gDriveAccessToken) {
-        uploadBackupToDrive().catch(console.error);
+      if (hasValidGoogleDriveToken()) {
+        syncAllBudgetsToDrive().catch(console.error);
       } else {
         loginGoogleDrive();
       }
@@ -1508,7 +1586,7 @@ function initEvents() {
 
   if (uploadButton) {
     uploadButton.addEventListener("click", () => {
-      uploadBackupToDrive().catch(console.error);
+      syncAllBudgetsToDrive().catch(console.error);
     });
   }
 
