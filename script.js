@@ -957,11 +957,11 @@ function renderDetail(budget) {
     </div>
 
     <div class="budget-actions">
-      <button id="editButton" class="secondary-button action-button" aria-label="Alterar orçamento"><span class="action-icon" aria-hidden="true">✎</span><span>Alterar orçamento</span></button>
-      <button id="deleteBudgetButton" class="danger-button action-button" aria-label="Excluir orçamento"><span class="action-icon" aria-hidden="true">🗑</span><span>Excluir orçamento</span></button>
-      <button id="pdfButton" class="primary-button action-button" aria-label="Gerar PDF"><span class="action-icon action-icon-pdf" aria-hidden="true">PDF</span><span>Gerar PDF</span></button>
-      <button id="whatsButton" class="secondary-button action-button" aria-label="Enviar pelo WhatsApp"><span class="action-icon action-icon-whatsapp" aria-hidden="true">◉</span><span>WhatsApp</span></button>
-      <button id="homeButton" class="secondary-button action-button" aria-label="Voltar ao início"><span class="action-icon" aria-hidden="true">←</span><span>Voltar</span></button>
+      <button id="editButton" class="secondary-button action-button" aria-label="Alterar orçamento" title="Alterar orçamento"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20h4l11-11-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg></span></button>
+      <button id="deleteBudgetButton" class="danger-button action-button" aria-label="Excluir orçamento" title="Excluir orçamento"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/></svg></span></button>
+      <button id="pdfButton" class="primary-button action-button" aria-label="Gerar PDF" title="Gerar PDF"><span class="action-icon action-icon-pdf" aria-hidden="true">PDF</span></button>
+      <button id="whatsButton" class="secondary-button action-button" aria-label="Enviar pelo WhatsApp" title="WhatsApp"><span class="action-icon action-icon-whatsapp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.6a8 8 0 0 1-11.8 7L4 20l1.4-4A8 8 0 1 1 20 11.6Z"/><path d="M9 8.5c.4 2.4 2.1 4.1 4.5 4.8l1.2-1.2 2.1 1c.2.1.3.4.2.6-.5 1.2-1.6 1.8-2.8 1.6-4-.7-6.9-3.6-7.5-7.5-.2-1.2.5-2.3 1.6-2.8.2-.1.5 0 .6.2l1 2.1L9 8.5Z"/></svg></span></button>
+      <button id="homeButton" class="secondary-button action-button" aria-label="Voltar ao início" title="Voltar ao início"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/><path d="M9 12h11"/></svg></span></button>
     </div>
   `;
 
