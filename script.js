@@ -187,8 +187,8 @@ function showView(id) {
   views.forEach((view) => view.classList.toggle("active", view.id === id));
   const titles = {
     homeView: "Orçamentos",
+    plateChoiceView: "Placa",
     plateView: "Ler placa",
-    manualPlateView: "Placa",
     vehicleView: "Veículo",
     kmView: "KM",
     clientView: "Cliente",
@@ -272,7 +272,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-async function startNewBudget() {
+function startNewBudget() {
   draft = createDraft();
   localStorage.removeItem(DRAFT_KEY);
   currentClientStep = 0;
@@ -280,8 +280,9 @@ async function startNewBudget() {
   parsedPreview.innerHTML = "";
   manualPlateInput.value = "";
   hidePlateLookupStatus();
-  showView("plateView");
-  await startCamera();
+  stopCamera();
+  showView("plateChoiceView");
+  setTimeout(() => manualPlateInput.focus(), 100);
 }
 
 async function startCamera() {
@@ -290,7 +291,7 @@ async function startCamera() {
   setCaptureButtonLoading(false);
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    cameraStatus.textContent = "Câmera indisponível. Toque em Manual.";
+    cameraStatus.textContent = "Câmera indisponível neste dispositivo. Digite a placa para continuar.";
     return;
   }
 
@@ -302,7 +303,8 @@ async function startCamera() {
     cameraPreview.srcObject = cameraStream;
     cameraStatus.textContent = "Enquadre a placa no retângulo e toque em Capturar.";
   } catch (error) {
-    cameraStatus.textContent = "Não foi possível abrir a câmera. Toque em Manual.";
+    console.error("Erro ao abrir a câmera:", error);
+    cameraStatus.textContent = "Não foi possível abrir a câmera. Verifique a permissão ou digite a placa.";
   }
 }
 
@@ -317,8 +319,14 @@ function openManualPlate() {
   stopCamera();
   setCaptureButtonLoading(false);
   hidePlateLookupStatus();
-  showView("manualPlateView");
+  showView("plateChoiceView");
   setTimeout(() => manualPlateInput.focus(), 100);
+}
+
+async function openCameraPlate() {
+  hidePlateLookupStatus();
+  showView("plateView");
+  await startCamera();
 }
 
 async function capturePlateFallback() {
@@ -381,15 +389,13 @@ async function capturePlateFallback() {
     }
 
     stopCamera();
-    showView("manualPlateView");
+    openManualPlate();
     showPlateLookupStatus("Não consegui identificar a placa na imagem. Digite manualmente.");
-    setTimeout(() => manualPlateInput.focus(), 100);
   } catch (error) {
     console.error("Erro OCR:", error);
     stopCamera();
-    showView("manualPlateView");
+    openManualPlate();
     showPlateLookupStatus("Falha ao ler a placa pela câmera. Digite manualmente.");
-    setTimeout(() => manualPlateInput.focus(), 100);
   } finally {
     isReadingPlate = false;
     setCaptureButtonLoading(false);
@@ -1246,10 +1252,10 @@ function buildPhotoPrintSection(budget) {
 
 function saveCurrentDraft() {
   const activeView = document.querySelector(".view.active")?.id;
-  const isCreating = ["plateView", "manualPlateView", "vehicleView", "kmView", "clientView", "budgetTextView"].includes(activeView);
+  const isCreating = ["plateChoiceView", "plateView", "vehicleView", "kmView", "clientView", "budgetTextView"].includes(activeView);
   if (!isCreating) return false;
 
-  if (activeView === "manualPlateView") draft.veiculo.placa = normalizePlate(manualPlateInput.value);
+  if (activeView === "plateChoiceView") draft.veiculo.placa = normalizePlate(manualPlateInput.value);
   if (activeView === "vehicleView") readVehicleForm();
   if (activeView === "kmView") draft.veiculo.km = document.querySelector("#vehicleKm").value.trim();
 
@@ -1298,6 +1304,17 @@ function resumeDraft(budget) {
   currentClientStep = budget.rascunhoClienteStep || 0;
 
   budgetTextInput.value = budget.textoOriginal || (budget.itens || []).map((item) => `${item.descricao} - ${String(item.valor).replace(".", ",")} reais`).join("\n");
+
+  if (["plateChoiceView", "plateView"].includes(budget.rascunhoEtapa)) {
+    showView("plateChoiceView");
+    return;
+  }
+
+  if (budget.rascunhoEtapa === "manualPlateView") {
+    manualPlateInput.value = draft.veiculo.placa || "";
+    openManualPlate();
+    return;
+  }
 
   if (budget.rascunhoEtapa === "vehicleView") {
     fillVehicleForm();
@@ -1390,11 +1407,8 @@ function initEvents() {
   });
 
   document.querySelector("#manualPlateButton").addEventListener("click", openManualPlate);
+  document.querySelector("#openCameraButton").addEventListener("click", openCameraPlate);
   document.querySelector("#capturePlateButton").addEventListener("click", capturePlateFallback);
-  document.querySelector("#backToCameraButton").addEventListener("click", () => {
-    showView("plateView");
-    startCamera();
-  });
   document.querySelector("#confirmManualPlateButton").addEventListener("click", confirmManualPlate);
   manualPlateInput.addEventListener("input", () => {
     manualPlateInput.value = normalizePlate(manualPlateInput.value);

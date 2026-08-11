@@ -1,8 +1,9 @@
-const CACHE_NAME = "orcamento-mecanico-v14-ocr-placa";
+const CACHE_NAME = "orcamento-mecanico-v16-placa-direta-camera";
 const FILES = [
   "./",
   "./index.html",
   "./styles.css",
+  "./responsive.css",
   "./script.js",
   "./manifest.webmanifest",
   "./logooficina.jpg"
