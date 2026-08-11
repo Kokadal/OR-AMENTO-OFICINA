@@ -188,7 +188,7 @@ function showView(id) {
   const titles = {
     homeView: "Orçamentos",
     plateChoiceView: "Placa",
-    plateView: "Ler placa",
+    plateView: "Câmera",
     vehicleView: "Veículo",
     kmView: "KM",
     clientView: "Cliente",
