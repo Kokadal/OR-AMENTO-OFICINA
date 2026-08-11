@@ -36,17 +36,17 @@
 
 .budget-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(52px, 1fr));
+  gap: 8px;
 }
 
 .action-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  min-height: 58px;
-  padding: 10px 16px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 8px;
 }
 
 .action-icon {
@@ -56,6 +56,16 @@
   font-size: 1.45rem;
   font-weight: 900;
   line-height: 1;
+}
+
+.action-icon svg {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .action-icon-pdf {
@@ -68,6 +78,11 @@
 
 .action-icon-whatsapp {
   color: #25d366;
+}
+
+.action-icon-whatsapp svg {
+  width: 30px;
+  height: 30px;
 }
 
 .photo-preview-link {
@@ -91,10 +106,6 @@
   outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 10px;
-}
-
-.budget-actions #homeButton {
-  grid-column: 1 / -1;
 }
 
 @media (min-width: 768px) {
@@ -125,11 +136,4 @@
   .budget-card { grid-template-columns: minmax(0, 1fr); align-content: space-between; }
   .budget-total { text-align: left; }
   .status-summary { grid-template-columns: repeat(3, minmax(0, 240px)); }
-  .budget-actions { grid-template-columns: repeat(5, minmax(150px, 1fr)); }
-  .budget-actions #homeButton { grid-column: auto; }
-}
-
-@media (max-width: 520px) {
-  .budget-actions { grid-template-columns: 1fr; }
-  .budget-actions #homeButton { grid-column: auto; }
 }
