@@ -126,7 +126,7 @@
   .form-stack { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .wide-card { width: min(100%, 960px); }
   .detail-card { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 28px; }
-  .detail-head, .detail-card > .button-row, .detail-card > .danger-button, .detail-card > .accept-box, .detail-card > .budget-actions { grid-column: 1 / -1; }
+  .detail-head, .detail-card > .button-row, .detail-card > .danger-button, .detail-card > .budget-actions { grid-column: 1 / -1; }
   .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .fab { right: max(32px, calc((100vw - 1600px) / 2 + 32px)); bottom: 32px; }
 }
@@ -135,5 +135,4 @@
   .budget-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .budget-card { grid-template-columns: minmax(0, 1fr); align-content: space-between; }
   .budget-total { text-align: left; }
-  .status-summary { grid-template-columns: repeat(3, minmax(0, 240px)); }
 }

@@ -4,10 +4,7 @@ Incluído:
 - Menu lateral com Configurações > Alterar dados oficina
 - Log out
 - Correção do bug de "Nenhum orçamento ainda"
-- Resumo na timeline:
-  - aprovados + soma aprovada
-  - rascunhos + soma rascunhos
-  - reprovados + soma reprovada
+- Resumo com a quantidade total de orçamentos salvos
 - Cache atualizado para v5
 
 Substitua no GitHub:

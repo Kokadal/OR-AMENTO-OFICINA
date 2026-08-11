@@ -11,7 +11,7 @@ Incluído nesta versão única:
 - Correção do travamento ao finalizar orçamento
 - Botão excluir orçamento
 - Logo AMMAR no PDF/O.S
-- Modelo de PDF mais profissional com logo, tabelas, total e link de aceite
+- Modelo de PDF mais profissional com logo, tabelas, total e fotos completas
 - Cache atualizado para v10
 
 Arquivos para substituir no GitHub:
