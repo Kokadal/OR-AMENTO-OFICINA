@@ -1,0 +1,65 @@
+.plate-choice-card {
+  gap: 24px;
+}
+
+.plate-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px;
+  gap: 10px;
+}
+
+.camera-icon-button {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  min-height: 56px;
+  border: 1px solid var(--accent);
+  background: #111416;
+  color: var(--accent);
+}
+
+.camera-icon-button:hover,
+.camera-icon-button:focus-visible {
+  background: rgba(255, 138, 76, .12);
+  outline: 3px solid rgba(255, 138, 76, .16);
+}
+
+.camera-icon-button svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (min-width: 768px) {
+  html { font-size: 17px; }
+  body { background: radial-gradient(circle at 82% 10%, rgba(255, 138, 76, .08), transparent 28%), #050607 !important; }
+  .app { width: min(calc(100% - 48px), 1180px); padding: 24px 28px 48px; background: radial-gradient(circle at 92% 92%, rgba(255, 138, 76, .08), transparent 24%), #080a0b; }
+  .app-header { margin: 0 -28px 24px; padding: 0 28px 24px; }
+  .search-panel, .screen { max-width: 1124px; }
+  .search-panel { max-width: 720px; margin-left: 0; }
+  .summary-band { padding: 20px 24px; }
+  .budget-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .budget-card { min-height: 176px; }
+  .empty-state { grid-column: 1 / -1; }
+  .step-card { width: min(100%, 820px); margin: 40px auto; padding: 32px; }
+  .plate-choice-card { width: min(100%, 720px); }
+  .camera-box, video { height: 420px; }
+  .camera-box { min-height: 420px; }
+  .form-stack { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .wide-card { width: min(100%, 960px); }
+  .detail-card { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 28px; }
+  .detail-head, .detail-card > .button-row, .detail-card > .danger-button, .detail-card > .accept-box { grid-column: 1 / -1; }
+  .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fab { right: max(32px, calc((100vw - 1180px) / 2 + 32px)); bottom: 32px; }
+}
+
+@media (min-width: 1100px) {
+  .budget-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .budget-card { grid-template-columns: minmax(0, 1fr); align-content: space-between; }
+  .budget-total { text-align: left; }
+  .status-summary { grid-template-columns: repeat(3, minmax(0, 240px)); }
+}
