@@ -1,10 +1,11 @@
-const CACHE_NAME = "orcamento-mecanico-v17-placa-direta-camera";
+const CACHE_NAME = "orcamento-mecanico-v18-google-drive-auth";
 const FILES = [
   "./",
   "./index.html",
   "./styles.css?v=17",
   "./responsive.css?v=17",
-  "./script.js?v=17",
+  "./google-drive-sync.js?v=18",
+  "./script.js?v=18",
   "./manifest.webmanifest",
   "./logooficina.jpg"
 ];
