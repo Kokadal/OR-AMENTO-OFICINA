@@ -1,11 +1,11 @@
-const CACHE_NAME = "orcamento-mecanico-v18-google-drive-auth";
+const CACHE_NAME = "orcamento-mecanico-v19-drive-arquivos";
 const FILES = [
   "./",
   "./index.html",
   "./styles.css?v=17",
   "./responsive.css?v=17",
-  "./google-drive-sync.js?v=18",
-  "./script.js?v=18",
+  "./google-drive-sync.js?v=19",
+  "./script.js?v=19",
   "./manifest.webmanifest",
   "./logooficina.jpg"
 ];
