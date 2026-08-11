@@ -23,12 +23,6 @@ const screenTitle = document.querySelector("#screenTitle");
 const budgetList = document.querySelector("#budgetList");
 const emptyState = document.querySelector("#emptyState");
 const budgetCount = document.querySelector("#budgetCount");
-const approvedCount = document.querySelector("#approvedCount");
-const approvedTotal = document.querySelector("#approvedTotal");
-const draftCount = document.querySelector("#draftCount");
-const draftTotal = document.querySelector("#draftTotal");
-const rejectedCount = document.querySelector("#rejectedCount");
-const rejectedTotal = document.querySelector("#rejectedTotal");
 const newBudgetButton = document.querySelector("#newBudgetButton");
 const searchButton = document.querySelector("#searchButton");
 const homeButtonTop = document.querySelector("#homeButtonTop");
@@ -102,7 +96,7 @@ function createDraft() {
     data: todayText(),
     criadoEm: nowIso(),
     atualizadoEm: nowIso(),
-    status: "pendente",
+    isDraft: false,
     motivo: "manutencao",
     cliente: { nome: "", telefone: "", email: "" },
     veiculo: { placa: "", marca: "", modelo: "", ano: "", cor: "", km: "" },
@@ -141,12 +135,13 @@ function loadBudgets() {
 }
 
 function normalizeBudget(budget) {
+  const { status: legacyStatus, ...savedBudget } = budget;
   return {
-    ...budget,
+    ...savedBudget,
     data: budget.data || todayText(),
     criadoEm: budget.criadoEm || nowIso(),
     atualizadoEm: budget.atualizadoEm || budget.criadoEm || nowIso(),
-    status: budget.status || "pendente",
+    isDraft: budget.isDraft === true || legacyStatus === "rascunho",
     motivo: budget.motivo || classifyBudgetReason(budget.itens || []),
     anexos: Array.isArray(budget.anexos) ? budget.anexos : [],
     servicos: Array.isArray(budget.servicos) ? budget.servicos : [],
@@ -204,7 +199,7 @@ function showView(id) {
 function renderHome() {
   const term = searchInput.value.trim().toLowerCase();
   const filtered = budgets.filter((budget) => {
-    const text = `${budget.os} ${budget.cliente.nome} ${budget.veiculo.placa} ${budget.status} ${budget.data} ${budget.motivo}`.toLowerCase();
+    const text = `${budget.os} ${budget.cliente.nome} ${budget.veiculo.placa} ${budget.data} ${budget.motivo}`.toLowerCase();
     return text.includes(term);
   });
 
@@ -220,11 +215,10 @@ function renderHome() {
     .map((budget) => `
       <button class="budget-card" data-os="${budget.os}">
         <span>
-          <strong>${budget.status === "rascunho" ? "RASCUNHO - " : ""}O.S #${budget.os} - ${escapeHtml(budget.cliente.nome || "Cliente")}</strong>
+          <strong>${budget.isDraft ? "RASCUNHO - " : ""}O.S #${budget.os} - ${escapeHtml(budget.cliente.nome || "Cliente")}</strong>
           <span>Data: ${escapeHtml(budget.data)} • Placa: ${escapeHtml(budget.veiculo.placa || "Sem placa")}</span>
           <span>${escapeHtml(budget.veiculo.modelo || "Veículo não informado")} • KM: ${escapeHtml(budget.veiculo.km || "Não informado")}</span>
           <span class="reason-pill reason-${budget.motivo || "manutencao"}">${reasonLabel(budget.motivo)}</span>
-          <span class="status-pill status-${budget.status}">${statusLabel(budget.status)}</span>
         </span>
         <span class="budget-total">${money(budget.total)}</span>
       </button>
@@ -235,23 +229,13 @@ function renderHome() {
     button.addEventListener("click", () => {
       const budget = budgets.find((item) => String(item.os) === String(button.dataset.os));
       if (!budget) return;
-      if (budget.status === "rascunho") resumeDraft(budget);
+      if (budget.isDraft) resumeDraft(budget);
       else {
         renderDetail(budget);
         showView("detailView");
       }
     });
   });
-}
-
-function statusLabel(status) {
-  const labels = {
-    rascunho: "Rascunho",
-    pendente: "Pendente de aceite",
-    aprovado: "Aprovado - pode iniciar",
-    reprovado: "Reprovado",
-  };
-  return labels[status] || status;
 }
 
 function reasonLabel(reason) {
@@ -862,7 +846,7 @@ function finishBudget() {
       return;
     }
 
-    draft.status = draft.status === "rascunho" ? "pendente" : (draft.status || "pendente");
+    draft.isDraft = false;
     draft.rascunhoEtapa = "";
     draft.rascunhoClienteStep = 0;
     draft.textoOriginal = "";
@@ -911,17 +895,12 @@ function renderDetail(budget) {
   document.querySelector("#detailCard").innerHTML = `
     <div class="detail-head">
       <div>
-        <p class="step-label">Orçamento ${statusLabel(budget.status)}</p>
+        <p class="step-label">Orçamento</p>
         <h2>O.S #${budget.os}</h2>
         <p>Data: ${escapeHtml(budget.data)}</p>
         <span class="reason-pill reason-${budget.motivo || "manutencao"}">${reasonLabel(budget.motivo)}</span>
       </div>
       <strong>${money(budget.total)}</strong>
-    </div>
-
-    <div class="detail-section">
-      <h3>Status</h3>
-      <span class="status-pill status-${budget.status}">${statusLabel(budget.status)}</span>
     </div>
 
     <div class="detail-section">
@@ -1111,25 +1090,11 @@ function deleteBudget(os) {
   alert(`O.S #${budget.os} excluída com sucesso.`);
 }
 
-function updateBudgetStatus(os, status) {
-  const budget = budgets.find((item) => item.os === Number(os));
-  if (!budget) return false;
-
-  budget.status = status;
-  budget.atualizadoEm = nowIso();
-  saveBudgets();
-  renderHome();
-  renderDetail(budget);
-  queueBudgetDriveSync(budget.os);
-  return true;
-}
-
 function buildMessage(budget) {
   return `Olá, ${budget.cliente.nome}! Segue o orçamento:
 
 O.S #${budget.os}
 Data: ${budget.data}
-Status: ${statusLabel(budget.status)}
 Tipo: ${reasonLabel(budget.motivo)}
 
 Veículo: ${budget.veiculo.placa} - ${budget.veiculo.modelo}
@@ -1196,7 +1161,7 @@ async function buildBudgetPdfBlob(budget) {
   doc.setFontSize(18);
   doc.text(OFFICE.nome || "AMMAR OFICINA", 14, 13);
   doc.setFontSize(10);
-  doc.text(`O.S #${budget.os}  •  ${budget.data}  •  ${statusLabel(budget.status)}`, 14, 22);
+  doc.text(`O.S #${budget.os}  •  ${budget.data}`, 14, 22);
 
   doc.setTextColor(25, 25, 25);
   doc.setFontSize(11);
@@ -1294,7 +1259,7 @@ function buildAmmarPdfHtml(budget) {
 <div class="logo-box">${getOfficeLogo() ? `<img src="${getOfficeLogo()}" alt="Logo AMMAR" />` : `ammar<br><small style="font-size:11px;">OFICINA MECANICA</small>`}</div>
 <div class="header-info"><h1>${escapeHtml(OFFICE.nome)}</h1><div>${escapeHtml(OFFICE.endereco)}</div><div>${escapeHtml(OFFICE.telefone)}</div><div>${escapeHtml(OFFICE.email || "")}</div></div>
 </header>
-<div class="os-line"><span>O.S #${budget.os}</span><span>Data: ${escapeHtml(budget.data)}</span><span>${statusLabel(budget.status)}</span></div>
+<div class="os-line"><span>O.S #${budget.os}</span><span>Data: ${escapeHtml(budget.data)}</span></div>
 <div class="section-title">Dados do Cliente</div>
 <table class="info-table"><tr><td class="label">Nome</td><td>${escapeHtml(budget.cliente.nome || "")}</td></tr><tr><td class="label">Telefone</td><td>${escapeHtml(budget.cliente.telefone || "")}</td></tr><tr><td class="label">E-mail</td><td>${escapeHtml(budget.cliente.email || "")}</td></tr></table>
 <div class="section-title">Dados do Veículo</div>
@@ -1363,7 +1328,7 @@ function saveCurrentDraft() {
     draft.motivo = classifyBudgetReason(parsed.items);
   }
 
-  draft.status = "rascunho";
+  draft.isDraft = true;
   draft.rascunhoEtapa = activeView;
   draft.rascunhoClienteStep = currentClientStep;
   draft.atualizadoEm = nowIso();

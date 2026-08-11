@@ -3,7 +3,7 @@
 Esta versão adiciona os pedidos novos:
 
 - Data da O.S aparece na timeline, detalhes e PDF
-- Status da O.S: pendente, aprovado, reprovado
+- Rascunho automático durante a criação da O.S
 - Editar orçamento depois de criado
 - Adicionar fotos e arquivos depois que a O.S foi criada
 - Visualizar as fotos anexadas em tamanho completo
@@ -17,8 +17,6 @@ Substitua no projeto:
 - `styles.css`
 
 As fotos continuam salvas no orçamento e entram na fila de sincronização do Google Drive.
-
-Para funcionar 100% com cliente abrindo no próprio celular, o próximo passo é ligar em Firebase/Supabase/backend.
 
 ## Como testar
 

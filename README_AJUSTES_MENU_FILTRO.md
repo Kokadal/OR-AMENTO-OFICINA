@@ -12,5 +12,4 @@ Incluído:
 - Etiqueta do motivo na timeline, detalhe, WhatsApp e PDF
 - Cache do service worker atualizado para v5
 
-Sobre link de aceite:
-No modo atual, com localStorage, o link só altera status no aparelho onde a O.S existe. Para o cliente aprovar do celular dele e a oficina ver automaticamente, precisa ligar Firebase/Supabase/backend.
+O fluxo de aprovação/reprovação foi descontinuado. A timeline mostra apenas o motivo e os dados do orçamento.
