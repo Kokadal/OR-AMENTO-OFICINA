@@ -6,10 +6,7 @@ Esta versão adiciona os pedidos novos:
 - Status da O.S: pendente, aprovado, reprovado
 - Editar orçamento depois de criado
 - Adicionar fotos e arquivos depois que a O.S foi criada
-- Link de aceite no WhatsApp/PDF:
-  - aprovar orçamento
-  - reprovar orçamento
-- Ao abrir o link de aceite, o app tenta mudar o status da O.S na timeline
+- Visualizar as fotos anexadas em tamanho completo
 
 ## Arquivos principais
 
@@ -19,9 +16,7 @@ Substitua no projeto:
 - `script.js`
 - `styles.css`
 
-## Atenção importante sobre link de aceite
-
-Como este app ainda usa apenas `localStorage`, o link de aceite só consegue alterar o status quando a O.S existe no mesmo navegador/aparelho.
+As fotos continuam salvas no orçamento e entram na fila de sincronização do Google Drive.
 
 Para funcionar 100% com cliente abrindo no próprio celular, o próximo passo é ligar em Firebase/Supabase/backend.
 
