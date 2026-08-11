@@ -982,7 +982,10 @@ function renderAttachments(budget) {
   return `
     ${photos.length ? `<div class="photo-grid">${photos.map((file) => `
       <div class="photo-card">
-        <img src="${file.dataUrl}" alt="${escapeHtml(file.name)}" />
+        <a class="photo-preview-link" href="#" onclick="openAttachment(${budget.os}, '${file.id}'); return false;" aria-label="Abrir ${escapeHtml(file.name)} em tamanho completo">
+          <img src="${file.dataUrl || file.driveLink || ""}" alt="${escapeHtml(file.name)}" />
+          <span>Toque para ampliar</span>
+        </a>
         <small>${escapeHtml(file.name)}</small>
         <button class="danger-button" onclick="removeAttachment(${budget.os}, '${file.id}')">Remover</button>
       </div>
@@ -994,6 +997,40 @@ function renderAttachments(budget) {
       </div>
     `).join("")}
   `;
+}
+
+function openAttachment(os, attachmentId) {
+  const budget = budgets.find((item) => Number(item.os) === Number(os));
+  const file = budget?.anexos?.find((item) => item.id === attachmentId);
+  if (!file) {
+    alert("Não encontrei esta foto no orçamento.");
+    return;
+  }
+
+  if (!file.dataUrl && file.driveLink) {
+    window.open(file.driveLink, "_blank", "noopener");
+    return;
+  }
+
+  if (!file.dataUrl) {
+    alert("Esta foto não está disponível neste aparelho. Sincronize novamente com o Google Drive.");
+    return;
+  }
+
+  const preview = window.open("", "_blank");
+  if (!preview) {
+    alert("O navegador bloqueou a abertura da foto. Permita pop-ups para este site.");
+    return;
+  }
+
+  preview.opener = null;
+  preview.document.title = file.name || "Foto da O.S";
+  preview.document.body.style.cssText = "margin:0;min-height:100vh;display:grid;place-items:center;background:#050607;padding:16px;";
+  const image = preview.document.createElement("img");
+  image.src = file.dataUrl;
+  image.alt = file.name || "Foto da O.S";
+  image.style.cssText = "display:block;max-width:100%;max-height:calc(100vh - 32px);object-fit:contain;";
+  preview.document.body.appendChild(image);
 }
 
 async function addAttachments(os, files) {
@@ -1087,32 +1124,6 @@ function updateBudgetStatus(os, status) {
   return true;
 }
 
-function buildApprovalLink(os, action) {
-  const url = new URL(window.location.href);
-  url.searchParams.set("os", os);
-  url.searchParams.set("acao", action);
-  return url.toString();
-}
-
-function checkApprovalFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  const os = Number(params.get("os"));
-  const action = params.get("acao");
-
-  if (!os || !action) return;
-
-  const status = action === "aprovar" ? "aprovado" : action === "reprovar" ? "reprovado" : "";
-  if (!status) return;
-
-  const ok = updateBudgetStatus(os, status);
-  const cleanUrl = new URL(window.location.href);
-  cleanUrl.search = "";
-  history.replaceState({}, "", cleanUrl.toString());
-
-  if (ok) alert(`O.S #${os} marcada como ${statusLabel(status)}.`);
-  else alert(`Não encontrei a O.S #${os} neste aparelho. Para funcionar 100%, use nuvem/Firebase.`);
-}
-
 function buildMessage(budget) {
   return `Olá, ${budget.cliente.nome}! Segue o orçamento:
 
@@ -1129,12 +1140,6 @@ ${budget.itens.map((item) => `- ${item.descricao}: ${money(item.valor)}`).join("
 Subtotal: ${money(budget.subtotal)}
 ${discountLabel(budget.descontoPercentual, budget.descontoValor)}: ${money(budget.desconto)}
 Total: ${money(budget.total)}
-
-Link para aprovar:
-${buildApprovalLink(budget.os, "aprovar")}
-
-Link para reprovar:
-${buildApprovalLink(budget.os, "reprovar")}
 
 ${OFFICE.nome}
 ${OFFICE.telefone}`;
@@ -1229,18 +1234,26 @@ async function buildBudgetPdfBlob(budget) {
   doc.setFontSize(14);
   doc.text(`TOTAL: ${money(budget.total)}`, 196, cursorY + 16, { align: "right" });
 
-  const photos = (budget.anexos || []).filter((file) => /^image\/(jpeg|png|webp)$/i.test(file.type || "")).slice(0, 6);
+  const photos = (budget.anexos || []).filter((file) => /^image\/(jpeg|png|webp)$/i.test(file.type || "") && file.dataUrl);
   if (photos.length) {
-    doc.addPage();
-    doc.setFontSize(15);
-    doc.text("Fotos da O.S", 14, 18);
-    for (let index = 0; index < photos.length; index++) {
-      const x = index % 2 === 0 ? 14 : 108;
-      const y = 26 + Math.floor(index / 2) * 82;
+    for (const [index, photo] of photos.entries()) {
       try {
-        doc.addImage(photos[index].dataUrl, undefined, x, y, 88, 70, undefined, "FAST");
+        const dimensions = await getImageDimensions(photo.dataUrl);
+        const maxWidth = 182;
+        const maxHeight = 245;
+        const scale = Math.min(maxWidth / dimensions.width, maxHeight / dimensions.height);
+        const imageWidth = dimensions.width * scale;
+        const imageHeight = dimensions.height * scale;
+        const x = (pageWidth - imageWidth) / 2;
+
+        doc.addPage();
+        doc.setFontSize(15);
+        doc.text(`Foto ${index + 1} da O.S`, 14, 17);
+        doc.setFontSize(9);
+        doc.text(photo.name || `Foto ${index + 1}`, 14, 23);
+        doc.addImage(photo.dataUrl, undefined, x, 29, imageWidth, imageHeight, undefined, "FAST");
       } catch (error) {
-        console.warn("Foto não incluída no PDF:", photos[index].name, error);
+        console.warn("Foto não incluída no PDF:", photo.name, error);
       }
     }
   }
@@ -1248,13 +1261,20 @@ async function buildBudgetPdfBlob(budget) {
   return doc.output("blob");
 }
 
+function getImageDimensions(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new Error("Não foi possível carregar a imagem."));
+    image.src = dataUrl;
+  });
+}
+
 function buildAmmarPdfHtml(budget) {
   const services = getBudgetServices(budget);
   const parts = getBudgetParts(budget);
   const serviceTotal = services.reduce((sum, item) => sum + Number(item.valor || 0), 0);
   const partTotal = parts.reduce((sum, item) => sum + Number(item.valor || 0), 0);
-  const acceptLink = buildApprovalLink(budget.os, "aprovar");
-  const rejectLink = buildApprovalLink(budget.os, "reprovar");
   const serviceRows = buildAmmarRows(services, 8);
   const partRows = buildAmmarRows(parts, 8);
 
@@ -1264,7 +1284,7 @@ function buildAmmarPdfHtml(budget) {
 <meta charset="utf-8" />
 <title>O.S #${budget.os}</title>
 <style>
-*{box-sizing:border-box}body{margin:0;padding:20px;background:#fff;font-family:Arial,sans-serif;color:#000}.print-actions{width:794px;margin:0 auto 16px;display:flex;gap:10px;justify-content:flex-end}.print-actions button{border:0;border-radius:8px;padding:10px 14px;background:#111827;color:#fff;font-weight:700;cursor:pointer}.page{width:794px;min-height:1123px;margin:0 auto;background:#fff}.header{display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:center;background:#d9d9d9;min-height:155px;padding:16px 24px;border:2px solid #000;border-bottom:none}.logo-box{width:135px;height:115px;display:grid;place-items:center;border:2px solid #222;background:#000;text-align:center;font-weight:900;font-size:23px;line-height:1.05;overflow:hidden}.logo-box img{width:100%;height:100%;object-fit:contain;padding:4px}.header-info{text-align:center;font-size:20px;line-height:1.55}.header-info h1{margin:0 0 8px;font-size:30px;line-height:1;font-weight:900}.os-line{display:flex;justify-content:space-between;gap:16px;padding:8px 12px;border-left:2px solid #000;border-right:2px solid #000;background:#f5f5f5;font-weight:900}.section-title{background:#1d1d1d;color:#fff;padding:8px 10px;border-left:2px solid #000;border-right:2px solid #000;font-size:18px;font-weight:900;text-align:right}.info-table,.items-table{width:100%;border-collapse:collapse;table-layout:fixed}.info-table td,.items-table th,.items-table td{border:2px solid #000;padding:7px 8px;height:31px;vertical-align:middle;font-size:16px}.info-table .label{width:190px;background:#d9d9d9;font-weight:900}.items-table th{background:#d9d9d9;font-weight:900;text-align:left}.qtd-col{width:80px;text-align:center}.unit-col,.total-col{width:145px;text-align:right}.totals-row td{background:#eee;font-weight:900}.grand-total{display:flex;justify-content:flex-end;margin-top:34px;font-size:22px;font-weight:900}.grand-total span{padding:8px 12px;background:#fff200;border:2px solid #000}.approval{margin-top:18px;padding:10px;border:2px dashed #000;font-size:13px;line-height:1.45;word-break:break-all}.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.photos img{width:100%;height:130px;object-fit:cover;border:1px solid #000}@media print{body{padding:0}.print-actions{display:none}.page{width:100%;min-height:auto}}
+*{box-sizing:border-box}body{margin:0;padding:20px;background:#fff;font-family:Arial,sans-serif;color:#000}.print-actions{width:794px;margin:0 auto 16px;display:flex;gap:10px;justify-content:flex-end}.print-actions button{border:0;border-radius:8px;padding:10px 14px;background:#111827;color:#fff;font-weight:700;cursor:pointer}.page{width:794px;min-height:1123px;margin:0 auto;background:#fff}.header{display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:center;background:#d9d9d9;min-height:155px;padding:16px 24px;border:2px solid #000;border-bottom:none}.logo-box{width:135px;height:115px;display:grid;place-items:center;border:2px solid #222;background:#000;text-align:center;font-weight:900;font-size:23px;line-height:1.05;overflow:hidden}.logo-box img{width:100%;height:100%;object-fit:contain;padding:4px}.header-info{text-align:center;font-size:20px;line-height:1.55}.header-info h1{margin:0 0 8px;font-size:30px;line-height:1;font-weight:900}.os-line{display:flex;justify-content:space-between;gap:16px;padding:8px 12px;border-left:2px solid #000;border-right:2px solid #000;background:#f5f5f5;font-weight:900}.section-title{background:#1d1d1d;color:#fff;padding:8px 10px;border-left:2px solid #000;border-right:2px solid #000;font-size:18px;font-weight:900;text-align:right}.info-table,.items-table{width:100%;border-collapse:collapse;table-layout:fixed}.info-table td,.items-table th,.items-table td{border:2px solid #000;padding:7px 8px;height:31px;vertical-align:middle;font-size:16px}.info-table .label{width:190px;background:#d9d9d9;font-weight:900}.items-table th{background:#d9d9d9;font-weight:900;text-align:left}.qtd-col{width:80px;text-align:center}.unit-col,.total-col{width:145px;text-align:right}.totals-row td{background:#eee;font-weight:900}.grand-total{display:flex;justify-content:flex-end;margin:34px 0 18px;font-size:22px;font-weight:900}.grand-total span{padding:8px 12px;background:#fff200;border:2px solid #000}.photos{display:grid;gap:18px;margin-top:10px}.photo-print-item{display:grid;place-items:center;page-break-inside:avoid;break-inside:avoid-page}.photos img{display:block;max-width:100%;width:auto;height:auto;max-height:1000px;object-fit:contain;border:1px solid #000}@media print{body{padding:0}.print-actions{display:none}.page{width:100%;min-height:auto}.photo-print-item{page-break-before:auto}}
 </style>
 </head>
 <body>
@@ -1284,7 +1304,6 @@ function buildAmmarPdfHtml(budget) {
 <div class="section-title">Tabela de Peças</div>
 <table class="items-table"><thead><tr><th class="qtd-col">Qtd</th><th>Descrição da Peça</th><th class="unit-col">Valor Unitário</th><th class="total-col">Total</th></tr></thead><tbody>${partRows}<tr class="totals-row"><td colspan="3">Total</td><td class="total-col">${money(partTotal)}</td></tr></tbody></table>
 <div class="grand-total"><span>SOMA TOTAL: ${money(budget.total)}</span></div>
-<div class="approval"><strong>Link de aceite</strong><br>Aprovar: ${escapeHtml(acceptLink)}<br>Reprovar: ${escapeHtml(rejectLink)}</div>
 ${buildPhotoPrintSection(budget)}
 </main>
 <script>window.onload=function(){setTimeout(function(){window.print()},500)}<\/script>
@@ -1312,9 +1331,9 @@ function getVehicleBrand(model) {
 }
 
 function buildPhotoPrintSection(budget) {
-  const photos = (budget.anexos || []).filter((file) => file.type && file.type.startsWith("image/")).slice(0, 6);
+  const photos = (budget.anexos || []).filter((file) => file.type && file.type.startsWith("image/") && file.dataUrl);
   if (!photos.length) return "";
-  return `<div class="section-title">Fotos da O.S</div><div class="photos">${photos.map((file) => `<img src="${file.dataUrl}" alt="${escapeHtml(file.name)}" />`).join("")}</div>`;
+  return `<div class="section-title">Fotos da O.S</div><div class="photos">${photos.map((file) => `<div class="photo-print-item"><img src="${file.dataUrl}" alt="${escapeHtml(file.name)}" /></div>`).join("")}</div>`;
 }
 
 function saveCurrentDraft() {
@@ -1594,7 +1613,6 @@ function initEvents() {
 
 initEvents();
 renderHome();
-checkApprovalFromUrl();
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js")

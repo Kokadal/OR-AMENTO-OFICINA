@@ -10,8 +10,7 @@ Modelo aplicado:
 - Tabela de Serviços
 - Tabela de Peças
 - SOMA TOTAL em amarelo
-- Link de aceite
-- Fotos da O.S, caso existam
+- Fotos completas da O.S, em páginas adicionais quando necessário
 
 ## Como o app separa serviço e peça
 

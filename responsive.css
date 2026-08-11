@@ -70,6 +70,29 @@
   color: #25d366;
 }
 
+.photo-preview-link {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  text-align: center;
+  text-decoration: none;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.photo-preview-link img {
+  object-fit: contain;
+  background: #050607;
+}
+
+.photo-preview-link:hover,
+.photo-preview-link:focus-visible {
+  color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
 .budget-actions #homeButton {
   grid-column: 1 / -1;
 }

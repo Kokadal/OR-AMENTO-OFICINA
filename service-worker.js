@@ -1,11 +1,11 @@
-const CACHE_NAME = "orcamento-mecanico-v20-detail-actions";
+const CACHE_NAME = "orcamento-mecanico-v21-pdf-photos";
 const FILES = [
   "./",
   "./index.html",
   "./styles.css?v=17",
-  "./responsive.css?v=20",
+  "./responsive.css?v=21",
   "./google-drive-sync.js?v=19",
-  "./script.js?v=19",
+  "./script.js?v=21",
   "./manifest.webmanifest",
   "./logooficina.jpg"
 ];
